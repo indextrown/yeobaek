@@ -10,7 +10,7 @@
 - 추정 인구와 데이터 기준 시각 확인
 - 시간대별 혼잡도 예측을 보고 방문 시간 비교
 
-현재 기획 및 API 검토 단계이며, 첫 버전은 서울 주요 장소를 중심으로 준비합니다.
+현재 App 모듈의 기본 실행 구조를 준비한 단계이며, 첫 버전은 서울 주요 장소를 중심으로 준비합니다.
 
 ## 기술 스택 (예정)
 
@@ -23,6 +23,36 @@
 | 로컬 DB | Realm | 앱 내 데이터의 로컬 저장 및 조회 |
 | 백엔드 | FastAPI | 혼잡도 API 연동 및 앱에 필요한 데이터 제공 |
 | 실시간 통신 | WebSocket | 백엔드에서 앱으로 혼잡도 갱신 메시지 스트리밍 |
+
+## 개발 시작
+
+- Tuist: `4.197.0` (`mise.toml`로 버전 고정)
+- 앱 타깃: `YeobaekApp`, iPhone·iOS 17 이상, Swift 6
+- 개발용 번들 ID: `com.indextrown.yeobaek` (배포 전 확정 필요)
+
+Xcode와 [mise](https://mise.jdx.dev/getting-started.html)를 준비한 뒤 저장소 루트에서 실행합니다.
+
+```sh
+mise trust ./mise.toml
+mise install
+mise exec -- tuist generate
+```
+
+생성된 `Yeobaek.xcworkspace`에서 `YeobaekApp` 스킴과 iPhone 시뮬레이터를 선택해 실행합니다. 실기기 실행 시에는 App 타깃에 본인의 개발 팀과 서명 설정이 필요합니다.
+
+[팝팡의 Tuist 구성](https://github.com/team-PopPang/PopPang-iOS)을 참고해 루트 워크스페이스와 `Projects/App` 프로젝트를 분리했습니다. 현재는 App 모듈 하나만 있으며, 앱 이름과 소개 문구를 표시합니다. 지도·Realm·네트워크 SDK와 VIPER 기능 모듈은 아직 연결하지 않았습니다. AppIcon은 이미지가 없는 자리표시자입니다.
+
+```text
+Tuist.swift
+Workspace.swift
+Projects/
+  App/
+    Project.swift
+    Sources/
+    Resources/
+```
+
+Xcode 프로젝트·워크스페이스와 `Derived` 등 생성물은 Git에서 제외합니다. 프로젝트 설정은 Tuist 매니페스트를 수정한 뒤 다시 생성합니다.
 
 ## 문서
 

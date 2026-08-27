@@ -1,0 +1,19 @@
+# macOS and Xcode user data
+.DS_Store
+xcuserdata/
+*.xcuserstate
+
+# Tuist-generated projects and build output
+*.xcodeproj/
+*.xcworkspace/
+Derived/
+DerivedData/
+.build/
+.swiftpm/
+Tuist/.cache/
+
+# Local configuration and secrets
+.mise.local.toml
+.env
+.env.*
+Secrets.xcconfig
