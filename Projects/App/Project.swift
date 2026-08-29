@@ -24,7 +24,9 @@ let project = Project(
             ),
             sources: ["Sources/**"],
             resources: ["Resources/**"],
-            dependencies: [],
+            dependencies: [
+                .project(target: "Domain", path: "../Domain")
+            ],
             settings: .settings(
                 base: [
                     "SWIFT_VERSION": "6.0",
@@ -35,6 +37,6 @@ let project = Project(
                     "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
                 ]
             )
-        ),
+        )
     ]
 )

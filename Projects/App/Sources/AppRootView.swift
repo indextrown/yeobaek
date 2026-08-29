@@ -1,4 +1,5 @@
 import SwiftUI
+import Domain
 
 struct AppRootView: View {
     var body: some View {
