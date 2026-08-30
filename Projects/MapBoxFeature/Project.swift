@@ -6,7 +6,7 @@ let project = Project(
         .target(
             name: "MapBoxFeature",
             destinations: [.iPhone],
-            product: .framework,
+            product: .staticFramework,
             bundleId: "com.indextrown.yeobaek.mapbox-feature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],

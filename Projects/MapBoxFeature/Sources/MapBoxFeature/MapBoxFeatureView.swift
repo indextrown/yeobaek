@@ -1,7 +1,7 @@
 import CoreLocation
+import MapboxMaps
 import Shared
 import SwiftUI
-import ThirdParty
 
 public struct MapBoxFeatureView: View {
     private let hasAccessToken: Bool

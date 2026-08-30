@@ -28,6 +28,7 @@ let project = Project(
             dependencies: [
                 .project(target: "Domain", path: "../Domain"),
                 .project(target: "Shared", path: "../Shared"),
+                .project(target: "ThirdParty", path: "../ThirdParty"),
                 .project(target: "MapFeature", path: "../MapFeature"),
                 .project(target: "MapBoxFeature", path: "../MapBoxFeature"),
             ],
