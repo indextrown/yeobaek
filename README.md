@@ -24,6 +24,26 @@
 | 백엔드 | FastAPI | 혼잡도 API 연동 및 앱에 필요한 데이터 제공 |
 | 실시간 통신 | WebSocket | 백엔드에서 앱으로 혼잡도 갱신 메시지 스트리밍 |
 
+## Feature 모듈 생성
+
+저장소 루트의 `Makefile`로 `Projects` 아래에 새 Feature 모듈을 만들 수 있습니다. 모듈 이름은 대문자로 시작하는 UpperCamelCase Swift 식별자를 사용합니다.
+
+```sh
+make module PlaceListFeature
+```
+
+독립 실행 가능한 Demo App 타깃도 함께 만들려면 명령 마지막에 `demo`를 붙입니다.
+
+```sh
+make module PlaceListFeature demo
+```
+
+명령은 Feature 프레임워크와 기본 SwiftUI View를 생성하고, `Workspace.swift`와 App 타깃 의존성에 모듈을 등록합니다. 같은 이름의 디렉터리가 이미 있으면 기존 파일을 덮어쓰지 않고 중단합니다. 생성 후 `mise exec -- tuist generate`를 실행하면 모듈과 선택한 Demo 스킴을 Xcode에서 확인할 수 있습니다.
+
+```sh
+make help
+```
+
 ## 개발 시작
 
 - Tuist: `4.197.0` (`mise.toml`로 버전 고정)

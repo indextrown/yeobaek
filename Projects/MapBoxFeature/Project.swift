@@ -25,5 +25,26 @@ let project = Project(
                 ]
             )
         ),
+        .target(
+            name: "MapBoxFeatureDemo",
+            destinations: [.iPhone],
+            product: .app,
+            bundleId: "com.indextrown.yeobaek.mapbox-feature-demo",
+            deploymentTargets: .iOS("17.0"),
+            infoPlist: .extendingDefault(
+                with: [
+                    "MBXAccessToken": "$(MAPBOX_ACCESS_TOKEN)",
+                ]
+            ),
+            sources: ["Demo/**"],
+            dependencies: [
+                .target(name: "MapBoxFeature"),
+            ],
+            settings: .settings(
+                base: [
+                    "SWIFT_VERSION": "6.0",
+                ]
+            )
+        ),
     ]
 )
