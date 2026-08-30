@@ -2,12 +2,6 @@ import ProjectDescription
 
 let project = Project(
     name: "MapBoxFeature",
-    packages: [
-        .remote(
-            url: "https://github.com/mapbox/mapbox-maps-ios.git",
-            requirement: .upToNextMajor(from: "11.27.0")
-        ),
-    ],
     targets: [
         .target(
             name: "MapBoxFeature",
@@ -17,7 +11,7 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             dependencies: [
-                .package(product: "MapboxMaps"),
+                .project(target: "ThirdParty", path: "../ThirdParty"),
             ],
             settings: .settings(
                 base: [
