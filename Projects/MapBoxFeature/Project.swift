@@ -11,6 +11,7 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             dependencies: [
+                .project(target: "Shared", path: "../Shared"),
                 .project(target: "ThirdParty", path: "../ThirdParty"),
             ],
             settings: .settings(
@@ -37,6 +38,16 @@ let project = Project(
             settings: .settings(
                 base: [
                     "SWIFT_VERSION": "6.0",
+                ],
+                configurations: [
+                    .debug(
+                        name: "Debug",
+                        xcconfig: .relativeToManifest("../App/Secrets.xcconfig")
+                    ),
+                    .release(
+                        name: "Release",
+                        xcconfig: .relativeToManifest("../App/Secrets.xcconfig")
+                    ),
                 ]
             )
         ),

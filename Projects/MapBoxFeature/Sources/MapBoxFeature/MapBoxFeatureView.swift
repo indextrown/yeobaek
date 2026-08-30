@@ -1,4 +1,5 @@
 import CoreLocation
+import Shared
 import SwiftUI
 import ThirdParty
 
@@ -6,11 +7,14 @@ public struct MapBoxFeatureView: View {
     private let hasAccessToken: Bool
 
     public init() {
-        let accessToken = Bundle.main.object(
-            forInfoDictionaryKey: "MBXAccessToken"
-        ) as? String
+        guard let accessToken = AppConfiguration.mapboxAccessToken,
+              accessToken.hasPrefix("pk.") else {
+            hasAccessToken = false
+            return
+        }
 
-        hasAccessToken = accessToken?.hasPrefix("pk.") == true
+        MapboxOptions.accessToken = accessToken
+        hasAccessToken = true
     }
 
     public var body: some View {

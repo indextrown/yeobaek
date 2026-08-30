@@ -27,6 +27,7 @@ let project = Project(
             resources: ["Resources/**"],
             dependencies: [
                 .project(target: "Domain", path: "../Domain"),
+                .project(target: "Shared", path: "../Shared"),
                 .project(target: "MapFeature", path: "../MapFeature"),
                 .project(target: "MapBoxFeature", path: "../MapBoxFeature"),
             ],
@@ -38,6 +39,16 @@ let project = Project(
                     "CODE_SIGN_STYLE": "Automatic",
                     "ASSETCATALOG_COMPILER_APPICON_NAME": "AppIcon",
                     "ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME": "AccentColor",
+                ],
+                configurations: [
+                    .debug(
+                        name: "Debug",
+                        xcconfig: .relativeToManifest("Secrets.xcconfig")
+                    ),
+                    .release(
+                        name: "Release",
+                        xcconfig: .relativeToManifest("Secrets.xcconfig")
+                    ),
                 ]
             )
         )
