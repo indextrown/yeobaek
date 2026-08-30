@@ -16,6 +16,7 @@ let project = Project(
                     "CFBundleLocalizations": ["ko"],
                     "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                     "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
+                    "MBXAccessToken": "$(MAPBOX_ACCESS_TOKEN)",
                     "UILaunchScreen": [:],
                     "UISupportedInterfaceOrientations": [
                         "UIInterfaceOrientationPortrait",
@@ -25,7 +26,9 @@ let project = Project(
             sources: ["Sources/**"],
             resources: ["Resources/**"],
             dependencies: [
-                .project(target: "Domain", path: "../Domain")
+                .project(target: "Domain", path: "../Domain"),
+                .project(target: "MapFeature", path: "../MapFeature"),
+                .project(target: "MapBoxFeature", path: "../MapBoxFeature"),
             ],
             settings: .settings(
                 base: [

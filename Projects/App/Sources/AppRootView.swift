@@ -1,23 +1,41 @@
 import SwiftUI
-import Domain
+import MapBoxFeature
+import MapFeature
 
 struct AppRootView: View {
+    private enum MapProvider: String, CaseIterable, Identifiable {
+        case mapKit = "MapKit"
+        case mapbox = "Mapbox"
+
+        var id: Self { self }
+    }
+
+    @State private var selectedProvider: MapProvider = .mapKit
+
     var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "map")
-                .font(.system(size: 44))
-                .foregroundStyle(.tint)
-                .accessibilityHidden(true)
+        ZStack(alignment: .top) {
+            Group {
+                switch selectedProvider {
+                case .mapKit:
+                    MapFeatureView()
+                case .mapbox:
+                    MapBoxFeatureView()
+                }
+            }
+            .ignoresSafeArea()
 
-            Text("여백")
-                .font(.largeTitle.bold())
-
-            Text("붐비는 공간 속, 여유를 찾다.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            Picker("지도 제공자", selection: $selectedProvider) {
+                ForEach(MapProvider.allCases) { provider in
+                    Text(provider.rawValue)
+                        .tag(provider)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(8)
+            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
         }
-        .padding()
     }
 }
 

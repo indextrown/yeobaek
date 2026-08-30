@@ -6,5 +6,7 @@ let workspace = Workspace(
         "Projects/App",
         "Projects/Domain",
         "Projects/Core",
+        "Projects/MapFeature",
+        "Projects/MapBoxFeature",
     ]
 )
