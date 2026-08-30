@@ -77,5 +77,6 @@ Xcode 프로젝트·워크스페이스와 `Derived` 등 생성물은 Git에서 �
 ## 문서
 
 - [Xcode Target, Scheme, Bundle과 SwiftUI Preview 이해하기](docs/xcode-target-scheme-bundle-preview.md)
+- [Static Framework와 Dynamic Framework 이해하기](docs/static-and-dynamic-frameworks.md)
 - [실시간 혼잡도 API 조사 및 비교](docs/실시간-혼잡도-API-조사.md)
 - [VIPER 아키텍처 이해와 여백 앱 적용](docs/viper.md)
