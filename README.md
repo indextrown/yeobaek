@@ -109,10 +109,32 @@ Place.id
 ### 엔티티, DTO, Repository의 역할
 
 - [CrowdRepository](Projects/Domain/Sources/Domain/Repositories/CrowdRepository.swift)는 `Domain`의 조회 프로토콜이에요. 장소 코드를 받아 `CrowdSnapshot`을 반환하는 계약만 정의해요.
-- [SeoulPopulationDTO](Projects/Core/Sources/Core/DTO/SeoulPopulationDTO.swift)와 [SeoulPopulationResponseDTO](Projects/Core/Sources/Core/DTO/SeoulPopulationResponseDTO.swift)는 `Core`에서 서울시 API의 항목과 전체 응답 형식을 받아요. 문자열을 숫자·시각·혼잡도 타입으로 바꾸는 작업은 [변환 코드](Projects/Core/Sources/Core/Mapping/SeoulPopulationDTO+Mapping.swift)가 맡아요.
-- [MockCrowdRepository](Projects/Core/Sources/Core/Repositories/MockCrowdRepository.swift)는 현재 `Core`에 있는 목업 구현이에요. [CrowdMockData](Projects/Core/Sources/Core/Mocks/CrowdMockData.swift)의 가상 장소와 혼잡도 정보를 사용하며, 목업 장소 코드는 실제 API 요청에 사용하지 않아요.
+- [SeoulPopulationDTO](Projects/Shared/Core/Sources/Core/DTO/SeoulPopulationDTO.swift)와 [SeoulPopulationResponseDTO](Projects/Shared/Core/Sources/Core/DTO/SeoulPopulationResponseDTO.swift)는 `Core`에서 서울시 API의 항목과 전체 응답 형식을 받아요. 문자열을 숫자·시각·혼잡도 타입으로 바꾸는 작업은 [변환 코드](Projects/Shared/Core/Sources/Core/Mapping/SeoulPopulationDTO+Mapping.swift)가 맡아요.
+- [MockCrowdRepository](Projects/Shared/Core/Sources/Core/Repositories/MockCrowdRepository.swift)는 현재 `Core`에 있는 목업 구현이에요. [CrowdMockData](Projects/Shared/Core/Sources/Core/Mocks/CrowdMockData.swift)의 가상 장소와 혼잡도 정보를 사용하며, 목업 장소 코드는 실제 API 요청에 사용하지 않아요.
 
 현재는 모델, DTO 변환, 목업 조회까지 준비되어 있어요. 실제 장소 경계 리소스, API 네트워크 호출, 지도 화면과의 데이터 연결은 이후 단계에서 추가해요.
+
+## 모듈 디렉터리 구성
+
+```text
+Projects/
+├── App/
+├── Domain/
+├── Features/
+│   ├── MapFeature/
+│   └── MapBoxFeature/
+└── Shared/
+    ├── Core/
+    │   └── Sources/Core/Configuration/AppConfiguration.swift
+    ├── Featcher/
+    └── ThirdParty/
+```
+
+`Features`와 `Shared`는 모듈이 아닌 분류용 디렉터리예요. 두 지도 Feature는 `Features` 아래에 두고, 공통으로 사용하는 `Core`, `Featcher`, `ThirdParty`는 `Shared` 아래에서 관리해요.
+
+기존 `Shared` 모듈은 제거했어요. `AppConfiguration`은 `Core`의 `Configuration` 폴더로 옮겼으며, 사용하는 곳에서는 `import Core`로 접근해요. 실제 키 파일은 기존 `Projects/App/Secrets.xcconfig`를 그대로 사용하고, 실행 중인 App 또는 Demo의 `Info.plist`를 `Bundle.main`으로 읽는 방식도 유지해요.
+
+`make module SampleFeature`는 `Projects/Features/SampleFeature`를 만들어요. `make module SampleFeature demo`로 Demo 앱을 함께 생성할 수 있어요. 기존 모듈의 이름, static/dynamic 설정과 Demo 앱은 유지해요.
 
 ## 문서
 

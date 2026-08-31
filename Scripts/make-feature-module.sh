@@ -22,12 +22,12 @@ fi
 
 script_directory="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repository_root="$(cd "$script_directory/.." && pwd)"
-project_directory="$repository_root/Projects/$module_name"
+project_directory="$repository_root/Projects/Features/$module_name"
 workspace_file="$repository_root/Workspace.swift"
 app_project_file="$repository_root/Projects/App/Project.swift"
 
 if [[ -e "$project_directory" ]]; then
-    echo "Projects/$module_name already exists."
+    echo "Projects/Features/$module_name already exists."
     exit 1
 fi
 
@@ -124,8 +124,8 @@ cat >> "$project_directory/Project.swift" <<EOF
 )
 EOF
 
-workspace_entry="        \"Projects/$module_name\"," 
-app_dependency="                .project(target: \"$module_name\", path: \"../$module_name\"),"
+workspace_entry="        \"Projects/Features/$module_name\"," 
+app_dependency="                .project(target: \"$module_name\", path: \"../Features/$module_name\"),"
 workspace_temp="$(mktemp)"
 app_project_temp="$(mktemp)"
 
@@ -139,7 +139,7 @@ awk -v entry="$workspace_entry" '
     { print }
 ' "$workspace_file" > "$workspace_temp"
 
-if ! grep -Fq "\"Projects/$module_name\"" "$workspace_temp"; then
+if ! grep -Fq "\"Projects/Features/$module_name\"" "$workspace_temp"; then
     echo "Could not register the module in Workspace.swift."
     exit 1
 fi
@@ -164,5 +164,5 @@ fi
 cat "$workspace_temp" > "$workspace_file"
 cat "$app_project_temp" > "$app_project_file"
 
-echo "Created Projects/$module_name"
+echo "Created Projects/Features/$module_name"
 echo "Demo app: $with_demo"

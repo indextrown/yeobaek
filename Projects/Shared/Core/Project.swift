@@ -11,7 +11,7 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             dependencies: [
-                .project(target: "Domain", path: "../Domain")
+                .project(target: "Domain", path: "../../Domain")
             ],
             settings: .settings(
                 base: [

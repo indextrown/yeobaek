@@ -1,6 +1,6 @@
 import CoreLocation
 import MapboxMaps
-import Shared
+import Core
 import SwiftUI
 
 public struct MapBoxFeatureView: View {

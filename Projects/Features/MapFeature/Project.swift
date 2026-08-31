@@ -1,20 +1,16 @@
 import ProjectDescription
 
 let project = Project(
-    name: "MapBoxFeature",
+    name: "MapFeature",
     targets: [
         .target(
-            name: "MapBoxFeature",
+            name: "MapFeature",
             destinations: [.iPhone],
             product: .staticFramework,
-            bundleId: "com.indextrown.yeobaek.mapbox-feature",
+            bundleId: "com.indextrown.yeobaek.map-feature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
-            dependencies: [
-                .project(target: "Shared", path: "../Shared"),
-                .project(target: "Featcher", path: "../Featcher"),
-                .project(target: "ThirdParty", path: "../ThirdParty"),
-            ],
+            dependencies: [],
             settings: .settings(
                 base: [
                     "SWIFT_VERSION": "6.0",
@@ -22,20 +18,19 @@ let project = Project(
             )
         ),
         .target(
-            name: "MapBoxFeatureDemo",
+            name: "MapFeatureDemo",
             destinations: [.iPhone],
             product: .app,
-            bundleId: "com.indextrown.yeobaek.mapbox-feature-demo",
+            bundleId: "com.indextrown.yeobaek.map-feature-demo",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(
                 with: [
-                    "MBXAccessToken": "$(MAPBOX_ACCESS_TOKEN)",
                     "SeoulAPIKey": "$(SEOUL_API_KEY)",
                 ]
             ),
             sources: ["Demo/**"],
             dependencies: [
-                .target(name: "MapBoxFeature"),
+                .target(name: "MapFeature"),
             ],
             settings: .settings(
                 base: [
@@ -44,11 +39,11 @@ let project = Project(
                 configurations: [
                     .debug(
                         name: "Debug",
-                        xcconfig: .relativeToManifest("../App/Secrets.xcconfig")
+                        xcconfig: .relativeToManifest("../../App/Secrets.xcconfig")
                     ),
                     .release(
                         name: "Release",
-                        xcconfig: .relativeToManifest("../App/Secrets.xcconfig")
+                        xcconfig: .relativeToManifest("../../App/Secrets.xcconfig")
                     ),
                 ]
             )

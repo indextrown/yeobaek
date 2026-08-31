@@ -5,11 +5,10 @@ let workspace = Workspace(
     projects: [
         "Projects/App",
         "Projects/Domain",
-        "Projects/Core",
-        "Projects/Shared",
-        "Projects/Featcher",
-        "Projects/ThirdParty",
-        "Projects/MapFeature",
-        "Projects/MapBoxFeature",
+        "Projects/Shared/Core",
+        "Projects/Shared/Featcher",
+        "Projects/Shared/ThirdParty",
+        "Projects/Features/MapFeature",
+        "Projects/Features/MapBoxFeature",
     ]
 )

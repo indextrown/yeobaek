@@ -28,10 +28,10 @@ let project = Project(
             resources: ["Resources/**"],
             dependencies: [
                 .project(target: "Domain", path: "../Domain"),
-                .project(target: "Shared", path: "../Shared"),
-                .project(target: "ThirdParty", path: "../ThirdParty"),
-                .project(target: "MapFeature", path: "../MapFeature"),
-                .project(target: "MapBoxFeature", path: "../MapBoxFeature"),
+                .project(target: "Core", path: "../Shared/Core"),
+                .project(target: "ThirdParty", path: "../Shared/ThirdParty"),
+                .project(target: "MapFeature", path: "../Features/MapFeature"),
+                .project(target: "MapBoxFeature", path: "../Features/MapBoxFeature"),
             ],
             settings: .settings(
                 base: [
