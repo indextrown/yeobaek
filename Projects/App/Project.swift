@@ -27,6 +27,7 @@ let project = Project(
             sources: ["Sources/**"],
             resources: ["Resources/**"],
             dependencies: [
+                .project(target: "Data", path: "../Data"),
                 .project(target: "Domain", path: "../Domain"),
                 .project(target: "Core", path: "../Shared/Core"),
                 .project(target: "ThirdParty", path: "../Shared/ThirdParty"),

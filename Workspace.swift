@@ -4,6 +4,7 @@ let workspace = Workspace(
     name: "Yeobaek",
     projects: [
         "Projects/App",
+        "Projects/Data",
         "Projects/Domain",
         "Projects/Shared/Core",
         "Projects/Shared/Featcher",

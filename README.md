@@ -109,16 +109,19 @@ Place.id
 ### 엔티티, DTO, Repository의 역할
 
 - [CrowdRepository](Projects/Domain/Sources/Domain/Repositories/CrowdRepository.swift)는 `Domain`의 조회 프로토콜이에요. 장소 코드를 받아 `CrowdSnapshot`을 반환하는 계약만 정의해요.
-- [SeoulPopulationDTO](Projects/Shared/Core/Sources/Core/DTO/SeoulPopulationDTO.swift)와 [SeoulPopulationResponseDTO](Projects/Shared/Core/Sources/Core/DTO/SeoulPopulationResponseDTO.swift)는 `Core`에서 서울시 API의 항목과 전체 응답 형식을 받아요. 문자열을 숫자·시각·혼잡도 타입으로 바꾸는 작업은 [변환 코드](Projects/Shared/Core/Sources/Core/Mapping/SeoulPopulationDTO+Mapping.swift)가 맡아요.
-- [MockCrowdRepository](Projects/Shared/Core/Sources/Core/Repositories/MockCrowdRepository.swift)는 현재 `Core`에 있는 목업 구현이에요. [CrowdMockData](Projects/Shared/Core/Sources/Core/Mocks/CrowdMockData.swift)의 가상 장소와 혼잡도 정보를 사용하며, 목업 장소 코드는 실제 API 요청에 사용하지 않아요.
+- [SeoulPopulationDTO](Projects/Data/Sources/Data/DTO/SeoulPopulationDTO.swift)와 [SeoulPopulationResponseDTO](Projects/Data/Sources/Data/DTO/SeoulPopulationResponseDTO.swift)는 `Core`에서 서울시 API의 항목과 전체 응답 형식을 받아요. 문자열을 숫자·시각·혼잡도 타입으로 바꾸는 작업은 [변환 코드](Projects/Data/Sources/Data/Mapping/SeoulPopulationDTO+Mapping.swift)가 맡아요.
+- [MockCrowdRepository](Projects/Data/Sources/Data/Repositories/MockCrowdRepository.swift)는 현재 `Core`에 있는 목업 구현이에요. [CrowdMockData](Projects/Data/Sources/Data/Mocks/CrowdMockData.swift)의 가상 장소와 혼잡도 정보를 사용하며, 목업 장소 코드는 실제 API 요청에 사용하지 않아요.
 
 현재는 모델, DTO 변환, 목업 조회까지 준비되어 있어요. 실제 장소 경계 리소스, API 네트워크 호출, 지도 화면과의 데이터 연결은 이후 단계에서 추가해요.
 
 ## 모듈 디렉터리 구성
 
+`Data`는 Demo 앱이 없는 dynamic framework예요. DTO, Domain 모델로의 매핑, Repository 구현, 목업 데이터를 관리해요. Repository 프로토콜과 엔티티는 `Domain`에 유지하고, 의존성은 `App → Data → Domain`으로 연결해요. `AppConfiguration` 등 공통 코드는 `Shared/Core`에 남겨요.
+
 ```text
 Projects/
 ├── App/
+├── Data/
 ├── Domain/
 ├── Features/
 │   ├── MapFeature/
