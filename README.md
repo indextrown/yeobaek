@@ -74,6 +74,46 @@ Projects/
 
 Xcode 프로젝트·워크스페이스와 `Derived` 등 생성물은 Git에서 제외합니다. 프로젝트 설정은 Tuist 매니페스트를 수정한 뒤 다시 생성합니다.
 
+## 엔티티와 데이터 모델
+
+`Domain`에는 MapKit과 Mapbox에서 함께 사용할 데이터 모델을 정의해요. 지도 SDK의 객체나 화면 색상을 넣지 않고, 장소와 혼잡도를 표현하는 값만 관리해요.
+
+`Place`는 고유 코드로 식별하는 장소 엔티티예요. 좌표, 경계, 인구 범위 등은 장소를 설명하는 값 타입이며, 각각을 별도 DB 테이블로 만든다는 뜻은 아니에요.
+
+| 타입 | 역할 | 주요 필드 |
+|---|---|---|
+| [Place](Projects/Domain/Sources/Domain/Entities/Place.swift) | 장소 자체를 식별하고 이름과 라벨 위치를 보관해요. | `id`, `name`, `labelCoordinate` |
+| [GeoCoordinate](Projects/Domain/Sources/Domain/Entities/GeoCoordinate.swift) | 지도 SDK에 의존하지 않는 WGS84 좌표를 표현해요. | `latitude`, `longitude` |
+| [AreaGeometry](Projects/Domain/Sources/Domain/Entities/AreaGeometry.swift) | 한 장소의 전체 경계를 보관해요. 여러 조각으로 떨어진 영역도 표현할 수 있어요. | `placeID`, `polygons` |
+| [GeoPolygon](Projects/Domain/Sources/Domain/Entities/AreaGeometry.swift) | 하나의 다각형을 표현해요. 외곽 경계와 내부에서 제외할 빈 공간의 경계를 구분해요. | `exteriorRing`, `interiorRings` |
+| [CongestionLevel](Projects/Domain/Sources/Domain/Entities/CongestionLevel.swift) | 혼잡도 단계를 나타내요. 색상과 표시 문구는 화면 계층에서 정해요. | `relaxed`(여유), `normal`(보통), `busy`(약간 붐빔), `crowded`(붐빔), `unknown`(알 수 없음) |
+| [PopulationRange](Projects/Domain/Sources/Domain/Entities/PopulationRange.swift) | 추정 인구의 최소·최대 범위를 표현해요. 최소값이 음수이거나 최대값보다 크면 생성자가 `nil`을 반환해요. | `minimum`, `maximum` |
+| [CrowdSnapshot](Projects/Domain/Sources/Domain/Entities/CrowdSnapshot.swift) | 특정 시각의 장소 혼잡도와 추정 인구를 보관해요. 장소 정보와 분리해서 갱신할 수 있어요. | `placeID`, `level`, `population`, `message`, `observedAt`, `isReplacementData` |
+
+### 모델 간 연결
+
+장소 이름이 아니라 고유 장소 코드로 경계와 혼잡도를 연결해요. 서울시 데이터에서는 `AREA_CD`를 이 코드로 사용해요.
+
+```text
+Place.id
+  -> AreaGeometry.placeID : 해당 장소의 경계
+  -> CrowdSnapshot.placeID : 해당 장소의 특정 시각 혼잡도
+```
+
+- `Place.labelCoordinate`는 라벨을 표시할 대표 좌표예요. 영역의 모양은 `AreaGeometry`가 담당하며, 대표 좌표가 없으면 `nil`로 유지해요.
+- `CrowdSnapshot.population == nil`은 인구 정보가 없다는 뜻이지, 사람이 0명이라는 뜻이 아니에요.
+- `CrowdSnapshot.observedAt`은 응답을 받은 시각이 아니라 원천 데이터의 기준 시각이에요. 요청에 성공했다고 데이터가 방금 측정된 것으로 표시하지 않아요.
+- `CrowdSnapshot.isReplacementData == nil`은 제공 기관이 대체 데이터 사용 여부를 명시하지 않았다는 뜻이에요.
+- `.unknown`은 혼잡도를 알 수 없다는 뜻이에요. 네트워크 실패나 오래된 데이터 여부는 혼잡도 단계와 별도로 다뤄요.
+
+### 엔티티, DTO, Repository의 역할
+
+- [CrowdRepository](Projects/Domain/Sources/Domain/Repositories/CrowdRepository.swift)는 `Domain`의 조회 프로토콜이에요. 장소 코드를 받아 `CrowdSnapshot`을 반환하는 계약만 정의해요.
+- [SeoulPopulationDTO](Projects/Core/Sources/Core/DTO/SeoulPopulationDTO.swift)와 [SeoulPopulationResponseDTO](Projects/Core/Sources/Core/DTO/SeoulPopulationResponseDTO.swift)는 `Core`에서 서울시 API의 항목과 전체 응답 형식을 받아요. 문자열을 숫자·시각·혼잡도 타입으로 바꾸는 작업은 [변환 코드](Projects/Core/Sources/Core/Mapping/SeoulPopulationDTO+Mapping.swift)가 맡아요.
+- [MockCrowdRepository](Projects/Core/Sources/Core/Repositories/MockCrowdRepository.swift)는 현재 `Core`에 있는 목업 구현이에요. [CrowdMockData](Projects/Core/Sources/Core/Mocks/CrowdMockData.swift)의 가상 장소와 혼잡도 정보를 사용하며, 목업 장소 코드는 실제 API 요청에 사용하지 않아요.
+
+현재는 모델, DTO 변환, 목업 조회까지 준비되어 있어요. 실제 장소 경계 리소스, API 네트워크 호출, 지도 화면과의 데이터 연결은 이후 단계에서 추가해요.
+
 ## 문서
 
 - [Xcode Target, Scheme, Bundle과 SwiftUI Preview 이해하기](docs/xcode-target-scheme-bundle-preview.md)
