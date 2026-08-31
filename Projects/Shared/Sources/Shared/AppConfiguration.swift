@@ -5,7 +5,13 @@ public enum AppConfiguration {
         value(for: "MBXAccessToken")
     }
 
-    private static func value(for key: String) -> String? {
+    /// Reads a resolved configuration string from the running app's Info.plist.
+    ///
+    /// - Parameter key: The Info.plist key to read from the main bundle.
+    /// - Returns: Trimmed text, or nil for missing, non-string, blank, or unresolved values.
+    private static func value(
+        for key: String
+    ) -> String? {
         guard let rawValue = Bundle.main.object(
             forInfoDictionaryKey: key
         ) as? String else {
