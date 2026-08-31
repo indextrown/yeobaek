@@ -12,6 +12,7 @@ let project = Project(
             sources: ["Sources/**"],
             dependencies: [
                 .project(target: "Shared", path: "../Shared"),
+                .project(target: "Featcher", path: "../Featcher"),
                 .project(target: "ThirdParty", path: "../ThirdParty"),
             ],
             settings: .settings(

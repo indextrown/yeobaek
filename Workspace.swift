@@ -7,6 +7,7 @@ let workspace = Workspace(
         "Projects/Domain",
         "Projects/Core",
         "Projects/Shared",
+        "Projects/Featcher",
         "Projects/ThirdParty",
         "Projects/MapFeature",
         "Projects/MapBoxFeature",
