@@ -23,7 +23,11 @@ let project = Project(
             product: .app,
             bundleId: "com.indextrown.yeobaek.map-feature-demo",
             deploymentTargets: .iOS("17.0"),
-            infoPlist: .default,
+            infoPlist: .extendingDefault(
+                with: [
+                    "SeoulAPIKey": "$(SEOUL_API_KEY)",
+                ]
+            ),
             sources: ["Demo/**"],
             dependencies: [
                 .target(name: "MapFeature"),
@@ -31,6 +35,16 @@ let project = Project(
             settings: .settings(
                 base: [
                     "SWIFT_VERSION": "6.0",
+                ],
+                configurations: [
+                    .debug(
+                        name: "Debug",
+                        xcconfig: .relativeToManifest("../App/Secrets.xcconfig")
+                    ),
+                    .release(
+                        name: "Release",
+                        xcconfig: .relativeToManifest("../App/Secrets.xcconfig")
+                    ),
                 ]
             )
         ),

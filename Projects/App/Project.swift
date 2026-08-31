@@ -17,6 +17,7 @@ let project = Project(
                     "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                     "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                     "MBXAccessToken": "$(MAPBOX_ACCESS_TOKEN)",
+                    "SeoulAPIKey": "$(SEOUL_API_KEY)",
                     "UILaunchScreen": [:],
                     "UISupportedInterfaceOrientations": [
                         "UIInterfaceOrientationPortrait",

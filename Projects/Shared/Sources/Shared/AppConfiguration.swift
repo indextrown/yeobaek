@@ -5,6 +5,10 @@ public enum AppConfiguration {
         value(for: "MBXAccessToken")
     }
 
+    public static var seoulAPIKey: String? {
+        value(for: "SeoulAPIKey")
+    }
+
     /// 실행 중인 앱의 Info.plist에서 빌드 설정이 반영된 문자열을 읽습니다.
     ///
     /// - Parameter key: 메인 번들의 Info.plist에서 조회할 키입니다.

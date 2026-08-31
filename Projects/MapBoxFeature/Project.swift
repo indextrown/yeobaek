@@ -30,6 +30,7 @@ let project = Project(
             infoPlist: .extendingDefault(
                 with: [
                     "MBXAccessToken": "$(MAPBOX_ACCESS_TOKEN)",
+                    "SeoulAPIKey": "$(SEOUL_API_KEY)",
                 ]
             ),
             sources: ["Demo/**"],
