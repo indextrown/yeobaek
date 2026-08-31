@@ -73,7 +73,7 @@ extension SeoulPopulationDTO {
             throw SeoulPopulationMappingError.invalidObservedAt(value: populationTime)
         }
 
-        // Keep this formatter local instead of sharing mutable state across tasks.
+        // 여러 작업이 변경 가능한 상태를 공유하지 않도록 포매터를 함수 안에서 생성합니다.
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -92,10 +92,10 @@ extension SeoulPopulationDTO {
     }
 }
 
-/// Trims surrounding whitespace and treats missing or blank text as unavailable.
+/// 문자열 앞뒤의 공백과 개행을 제거하고, 값이 없거나 비어 있으면 `nil`로 처리합니다.
 ///
-/// - Parameter value: The optional raw text to normalize.
-/// - Returns: Trimmed nonempty text, or nil if the input is absent or blank.
+/// - Parameter value: 정리할 원본 문자열입니다. 값이 없으면 `nil`을 전달합니다.
+/// - Returns: 앞뒤 공백과 개행을 제거한 문자열입니다. 입력이 없거나 정리 후 비어 있으면 `nil`입니다.
 private func nonBlank(
     _ value: String?
 ) -> String? {

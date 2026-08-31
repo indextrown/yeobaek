@@ -5,10 +5,10 @@ public enum AppConfiguration {
         value(for: "MBXAccessToken")
     }
 
-    /// Reads a resolved configuration string from the running app's Info.plist.
+    /// 실행 중인 앱의 Info.plist에서 빌드 설정이 반영된 문자열을 읽습니다.
     ///
-    /// - Parameter key: The Info.plist key to read from the main bundle.
-    /// - Returns: Trimmed text, or nil for missing, non-string, blank, or unresolved values.
+    /// - Parameter key: 메인 번들의 Info.plist에서 조회할 키입니다.
+    /// - Returns: 앞뒤 공백과 개행을 제거한 문자열입니다. 값이 없거나 문자열이 아닌 경우, 비어 있거나 빌드 설정이 치환되지 않은 경우에는 `nil`입니다.
     private static func value(
         for key: String
     ) -> String? {

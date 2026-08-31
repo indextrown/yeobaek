@@ -1,13 +1,13 @@
-/// A WGS84 coordinate, independent of the map SDK used for rendering.
+/// 지도 SDK에 의존하지 않는 WGS84 좌표입니다.
 public struct GeoCoordinate: Equatable, Sendable {
     public let latitude: Double
     public let longitude: Double
 
-    /// Stores a geographic position using WGS84 coordinates.
+    /// WGS84 좌표계의 위도와 경도를 저장합니다.
     ///
     /// - Parameters:
-    ///   - latitude: The latitude in degrees.
-    ///   - longitude: The longitude in degrees.
+    ///   - latitude: 도 단위의 위도입니다.
+    ///   - longitude: 도 단위의 경도입니다.
     public init(
         latitude: Double,
         longitude: Double

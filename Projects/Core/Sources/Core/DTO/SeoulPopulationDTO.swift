@@ -1,6 +1,6 @@
-/// The current-population item from citydata_ppltn.
-/// Demographics and forecasts are intentionally not modeled yet.
-/// Source: https://data.seoul.go.kr/dataList/OA-21778/A/1/datasetView.do
+/// `citydata_ppltn` 응답 중 현재 인구 정보를 담는 DTO입니다.
+/// 성별·연령대별 인구 구성과 예측 정보는 아직 모델링하지 않았습니다.
+/// 출처: https://data.seoul.go.kr/dataList/OA-21778/A/1/datasetView.do
 public struct SeoulPopulationDTO: Decodable, Sendable {
     public let areaName: String
     public let areaCode: String
