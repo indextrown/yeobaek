@@ -34,5 +34,33 @@ let project = Project(
                 ]
             )
         ),
+        .target(
+            name: "FeatcherTests",
+            destinations: [.iPhone],
+            product: .unitTests,
+            bundleId: "com.indextrown.yeobaek.featcher-tests",
+            deploymentTargets: .iOS("17.0"),
+            infoPlist: .default,
+            sources: ["Tests/**"],
+            dependencies: [
+                .target(name: "Featcher"),
+            ],
+            settings: .settings(
+                base: [
+                    "SWIFT_VERSION": "6.0",
+                ]
+            )
+        ),
+    ],
+    schemes: [
+        .scheme(
+            name: "FeatcherTests",
+            shared: true,
+            buildAction: .buildAction(targets: ["FeatcherTests"]),
+            testAction: .targets(
+                ["FeatcherTests"],
+                configuration: "Debug"
+            )
+        ),
     ]
 )
