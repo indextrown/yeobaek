@@ -1,5 +1,5 @@
 {
-  "originHash" : "c2c7346c793a350081877a941285c8186a58ecb9d4456fcf61a7c0c423da81d4",
+  "originHash" : "f7ea4f983c3cd839ec412df40932c8b99f6bb726df2384cea05bc4f40f94dc75",
   "pins" : [
     {
       "identity" : "mapbox-common-ios",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "473743121c761d6d2f3060549c1fa5821cd876c9",
         "version" : "11.29.1"
+      }
+    },
+    {
+      "identity" : "rxswift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ReactiveX/RxSwift.git",
+      "state" : {
+        "revision" : "132aea4f236ccadc51590b38af0357a331d51fa2",
+        "version" : "6.10.2"
       }
     },
     {
