@@ -264,6 +264,108 @@ viewModel.title
     .disposed(by: disposeBag)
 ```
 
+## 같은 버튼을 RxSwift와 RxCocoa로 연결해요
+
+UIKit 버튼 탭을 ViewModel의 `currentLocationTapped` Input으로 전달한다고 가정해요. RxCocoa를 사용하지 않아도 구현할 수 있지만, UIKit 콜백을 Rx 이벤트로 바꾸는 코드를 직접 작성해야 해요.
+
+### RxCocoa 없이 PublishSubject로 연결하기
+
+RxSwift만 사용하면 `UIButton`의 Target-Action을 `PublishSubject<Void>`로 전달해요.
+
+```swift
+import RxSwift
+import UIKit
+
+final class MapViewController: UIViewController {
+    private let locationButton = UIButton(type: .system)
+    private let currentLocationTapped = PublishSubject<Void>()
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        locationButton.addTarget(
+            self,
+            action: #selector(didTapCurrentLocation),
+            for: .touchUpInside
+        )
+
+        let input = MapViewModel.Input(
+            currentLocationTapped: currentLocationTapped.asObservable()
+        )
+    }
+
+    /// UIKit 버튼 탭을 RxSwift 이벤트로 변환합니다.
+    @objc private func didTapCurrentLocation() {
+        currentLocationTapped.onNext(())
+    }
+}
+```
+
+이 방식의 흐름은 아래와 같아요.
+
+```text
+UIButton 터치
+  -> addTarget
+  -> @objc 메서드
+  -> PublishSubject.onNext(())
+  -> ViewModel Input
+```
+
+`PublishSubject`는 UIKit 콜백과 RxSwift 사이의 수동 연결 통로예요. RxCocoa를 사용할 수 없거나 Rx로 제공되지 않는 외부 SDK 콜백을 연결할 때 같은 방식이 필요할 수 있어요.
+
+### RxCocoa의 ControlEvent로 연결하기
+
+RxCocoa는 `UIButton`의 탭을 `ControlEvent<Void>`로 제공해요. 별도의 Subject, Target-Action, `@objc` 메서드가 필요하지 않아요.
+
+```swift
+import RxCocoa
+import RxSwift
+import UIKit
+
+final class MapViewController: UIViewController {
+    private let locationButton = UIButton(type: .system)
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        let input = MapViewModel.Input(
+            currentLocationTapped: locationButton.rx.tap.asObservable()
+        )
+    }
+}
+```
+
+이 방식의 흐름은 아래와 같아요.
+
+```text
+UIButton 터치
+  -> button.rx.tap
+  -> ViewModel Input
+```
+
+버튼을 눌렀을 때 ViewModel Input 전달 외에 직접 실행할 코드가 있다면 `bind(onNext:)`를 사용할 수 있어요.
+
+```swift
+locationButton.rx.tap
+    .bind(onNext: { [weak self] in
+        self?.session.registerManualRequest()
+    })
+    .disposed(by: disposeBag)
+```
+
+### 두 방식을 비교해요
+
+| 비교 항목 | UIKit + RxSwift | RxCocoa |
+| --- | --- | --- |
+| 버튼 이벤트 시작점 | `addTarget` | `button.rx.tap` |
+| Rx 이벤트 변환 | `PublishSubject.onNext(())`를 직접 호출 | `ControlEvent<Void>`가 자동 제공 |
+| 필요한 중간 객체 | `PublishSubject<Void>` | 없음 |
+| Objective-C 메서드 | `@objc` 메서드 필요 | 필요 없음 |
+| 메인 스레드와 오류 규칙 | 직접 관리 | `ControlEvent`가 메인 스레드와 오류 없음 보장 |
+| 적합한 상황 | RxCocoa가 없거나 지원되지 않는 콜백 | UIKit 컨트롤을 일반적으로 연결할 때 |
+
+두 방식 모두 같은 ViewModel Input을 만들 수 있어요. RxCocoa를 사용하는 프로젝트에서는 중간 Subject를 만들지 않고 `rx.tap`을 직접 전달하는 방식을 우선해요. RxCocoa가 지원하지 않는 콜백만 Subject나 Relay로 감싸는 편이 좋아요.
+
 ## subscribe, bind, drive, emit을 구분해요
 
 이 메서드들은 스트림을 최종 소비자에게 연결해요. 반환된 `Disposable`을 보관해야 실제 화면 수명과 구독 수명을 맞출 수 있어요.

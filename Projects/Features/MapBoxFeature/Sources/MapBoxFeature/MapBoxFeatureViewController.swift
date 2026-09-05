@@ -28,6 +28,11 @@ public final class MapBoxFeatureViewController: UIViewController {
     /// 위치 권한이 거부됐을 때 안내 문구를 표시합니다.
     private let authorizationLabel = UILabel()
 
+    /// 위치 권한 안내 문구에만 material 배경을 제공합니다.
+    private let authorizationBackgroundView = UIVisualEffectView(
+        effect: UIBlurEffect(style: .systemMaterial)
+    )
+
     // MARK: - Subscriptions
 
     /// Mapbox 카메라 이벤트 구독의 수명을 관리합니다.
@@ -95,6 +100,7 @@ public final class MapBoxFeatureViewController: UIViewController {
     private func configureMapView() {
         mapView.translatesAutoresizingMaskIntoConstraints = false
         mapView.accessibilityIdentifier = "mapbox-map"
+        mapView.location.options.puckType = .puck2D(.makeDefault())
         view.addSubview(mapView)
         NSLayoutConstraint.activate([
             mapView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -107,6 +113,7 @@ public final class MapBoxFeatureViewController: UIViewController {
 
     /// 현재 위치 버튼, 진행 표시기, 권한 안내 UI를 구성합니다.
     private func configureControls() {
+        authorizationLabel.translatesAutoresizingMaskIntoConstraints = false
         authorizationLabel.font = .preferredFont(forTextStyle: .caption1)
         authorizationLabel.textColor = .label
         authorizationLabel.numberOfLines = 0
@@ -114,6 +121,7 @@ public final class MapBoxFeatureViewController: UIViewController {
         authorizationLabel.accessibilityIdentifier = "mapbox-location-authorization-message"
 
         locationButton.translatesAutoresizingMaskIntoConstraints = false
+        locationButton.configuration = .plain()
         locationButton.backgroundColor = .secondarySystemBackground
         locationButton.tintColor = .label
         locationButton.layer.cornerRadius = 26
@@ -130,31 +138,41 @@ public final class MapBoxFeatureViewController: UIViewController {
             progressView.centerYAnchor.constraint(equalTo: locationButton.centerYAnchor),
         ])
 
-        let controls = UIStackView(arrangedSubviews: [authorizationLabel, locationButton])
-        controls.translatesAutoresizingMaskIntoConstraints = false
-        controls.axis = .horizontal
-        controls.alignment = .center
-        controls.spacing = 8
-        controls.isLayoutMarginsRelativeArrangement = true
-        controls.layoutMargins = UIEdgeInsets(top: 8, left: 12, bottom: 8, right: 8)
-
-        let background = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
-        background.translatesAutoresizingMaskIntoConstraints = false
-        background.layer.cornerRadius = 30
-        background.clipsToBounds = true
-        background.contentView.addSubview(controls)
-        view.addSubview(background)
+        authorizationBackgroundView.translatesAutoresizingMaskIntoConstraints = false
+        authorizationBackgroundView.layer.cornerRadius = 18
+        authorizationBackgroundView.clipsToBounds = true
+        authorizationBackgroundView.isHidden = true
+        authorizationBackgroundView.contentView.addSubview(authorizationLabel)
+        view.addSubview(authorizationBackgroundView)
+        view.addSubview(locationButton)
 
         NSLayoutConstraint.activate([
             locationButton.widthAnchor.constraint(equalToConstant: 52),
             locationButton.heightAnchor.constraint(equalToConstant: 52),
+            locationButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            locationButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -68),
             authorizationLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 250),
-            controls.leadingAnchor.constraint(equalTo: background.contentView.leadingAnchor),
-            controls.trailingAnchor.constraint(equalTo: background.contentView.trailingAnchor),
-            controls.topAnchor.constraint(equalTo: background.contentView.topAnchor),
-            controls.bottomAnchor.constraint(equalTo: background.contentView.bottomAnchor),
-            background.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            background.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -68),
+            authorizationLabel.leadingAnchor.constraint(
+                equalTo: authorizationBackgroundView.contentView.leadingAnchor,
+                constant: 12
+            ),
+            authorizationLabel.trailingAnchor.constraint(
+                equalTo: authorizationBackgroundView.contentView.trailingAnchor,
+                constant: -12
+            ),
+            authorizationLabel.topAnchor.constraint(
+                equalTo: authorizationBackgroundView.contentView.topAnchor,
+                constant: 10
+            ),
+            authorizationLabel.bottomAnchor.constraint(
+                equalTo: authorizationBackgroundView.contentView.bottomAnchor,
+                constant: -10
+            ),
+            authorizationBackgroundView.trailingAnchor.constraint(
+                equalTo: locationButton.leadingAnchor,
+                constant: -8
+            ),
+            authorizationBackgroundView.centerYAnchor.constraint(equalTo: locationButton.centerYAnchor),
         ])
     }
 
@@ -177,18 +195,21 @@ public final class MapBoxFeatureViewController: UIViewController {
             )
         )
 
+        /// 최신 화면 상태를 구독해 로딩과 위치 권한 UI에 반영합니다.
         output.state
             .drive(onNext: { [weak self] state in
                 self?.renderState(state)
             })
             .disposed(by: disposeBag)
 
+        /// 일회성 카메라 명령을 구독해 지도를 현재 위치로 이동합니다.
         output.cameraCommand
             .emit(onNext: { [weak self] command in
                 self?.moveCamera(to: command)
             })
             .disposed(by: disposeBag)
 
+        /// 일회성 알림 이벤트를 구독해 위치 조회 오류를 표시합니다.
         output.alert
             .emit(onNext: { [weak self] alert in
                 self?.renderAlert(alert)
@@ -229,6 +250,7 @@ public final class MapBoxFeatureViewController: UIViewController {
         }
         authorizationLabel.text = authorizationMessage
         authorizationLabel.isHidden = authorizationMessage == nil
+        authorizationBackgroundView.isHidden = authorizationMessage == nil
     }
 
     /// 현재 위치 명령을 Mapbox 카메라와 앱 수명 상태에 반영합니다.

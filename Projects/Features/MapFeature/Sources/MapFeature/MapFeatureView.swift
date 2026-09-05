@@ -50,7 +50,9 @@ public struct MapFeatureView: View {
 
     public var body: some View {
         ZStack(alignment: .bottomTrailing) {
-            Map(position: $cameraPosition)
+            Map(position: $cameraPosition) {
+                UserAnnotation()
+            }
                 .mapStyle(.standard(elevation: .realistic))
                 .ignoresSafeArea()
                 .onMapCameraChange(frequency: .onEnd) { context in
