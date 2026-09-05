@@ -15,6 +15,8 @@ let project = Project(
                 .project(target: "Featcher", path: "../../Shared/Featcher"),
                 .project(target: "ThirdParty", path: "../../Shared/ThirdParty"),
                 .external(name: "MapboxMaps"),
+                .external(name: "RxCocoa"),
+                .external(name: "RxRelay"),
                 .external(name: "RxSwift"),
             ],
             settings: .settings(
@@ -65,6 +67,7 @@ let project = Project(
             sources: ["Tests/**"],
             dependencies: [
                 .target(name: "MapBoxFeature"),
+                .external(name: "RxCocoa"),
                 .external(name: "RxSwift"),
             ],
             settings: .settings(base: ["SWIFT_VERSION": "6.0"])

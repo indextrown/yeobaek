@@ -8,6 +8,8 @@ import ProjectDescription
 let packageSettings = PackageSettings(
     productTypes: [
         "MapboxMaps": .framework,
+        "RxCocoa": .framework,
+        "RxRelay": .framework,
         "RxSwift": .framework,
     ]
 )

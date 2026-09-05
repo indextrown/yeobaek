@@ -12,6 +12,8 @@ let project = Project(
             sources: ["Sources/**"],
             dependencies: [
                 .external(name: "MapboxMaps"),
+                .external(name: "RxCocoa"),
+                .external(name: "RxRelay"),
                 .external(name: "RxSwift"),
             ],
             settings: .settings(

@@ -1,19 +1,36 @@
 import CoreLocation
 import MapboxMaps
+import RxCocoa
 import RxSwift
 import UIKit
 
 /// Mapbox 지도와 현재 위치 UI를 UIKit으로 표시하고 Rx ViewModel의 출력을 렌더링합니다.
-@MainActor
 public final class MapBoxFeatureViewController: UIViewController {
+    /// 자동 위치 요청 여부와 마지막 지도 카메라를 유지하는 상태입니다.
     private let session: MapBoxSession
+
+    /// 화면 입력을 위치 조회 상태와 출력으로 변환하는 Rx ViewModel입니다.
     private let viewModel: MapBoxFeatureViewModel
+
+    /// Mapbox 지도와 카메라를 실제로 표시하는 UIKit View입니다.
     private let mapView: MapView
+
+    /// 사용자가 현재 위치 이동을 요청하는 버튼입니다.
     private let locationButton = UIButton(type: .system)
+
+    /// 위치 권한 또는 좌표 조회 중임을 표시합니다.
     private let progressView = UIActivityIndicatorView(style: .medium)
+
+    /// 위치 권한이 거부됐을 때 안내 문구를 표시합니다.
     private let authorizationLabel = UILabel()
+
+    /// Mapbox 카메라 이벤트 구독의 수명을 관리합니다.
     private var mapboxCancelables = Set<AnyCancelable>()
+
+    /// ViewModel Output 구독의 수명을 ViewController와 함께 관리합니다.
     private var disposeBag = DisposeBag()
+
+    /// 동일한 위치 오류 알림을 중복으로 표시하지 않기 위한 식별자입니다.
     private var presentedAlertID: UUID?
 
     /// 앱 실행 중 유지할 지도 상태와 Rx ViewModel을 주입해 UIKit 화면을 만듭니다.
@@ -56,40 +73,17 @@ public final class MapBoxFeatureViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    public override func loadView() {
-        let rootView = UIView()
-        rootView.backgroundColor = .systemBackground
-        view = rootView
-        configureMapView()
-        configureControls()
-    }
-
+    /// Mapbox 화면을 구성하고 ViewModel 및 카메라 이벤트를 연결합니다.
     public override func viewDidLoad() {
         super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        configureMapView()
+        configureControls()
         bindViewModel()
         observeCamera()
     }
 
-    /// 화면이 나타날 때 앱 수명에서 한 번만 현재 위치를 자동으로 요청합니다.
-    ///
-    /// - Parameter animated: 화면 전환 애니메이션 여부입니다.
-    public override func viewDidAppear(
-        _ animated: Bool
-    ) {
-        super.viewDidAppear(animated)
-        session.startAutomatically(viewModel.moveToCurrentLocation)
-    }
-
-    /// 화면이 사라질 때 진행 중인 위치 요청과 Rx 구독을 정리합니다.
-    ///
-    /// - Parameter animated: 화면 전환 애니메이션 여부입니다.
-    public override func viewDidDisappear(
-        _ animated: Bool
-    ) {
-        super.viewDidDisappear(animated)
-        viewModel.cancel()
-    }
-
+    /// Mapbox 지도 View를 화면 전체에 배치하고 접근성 정보를 설정합니다.
     private func configureMapView() {
         mapView.translatesAutoresizingMaskIntoConstraints = false
         mapView.accessibilityIdentifier = "mapbox-map"
@@ -103,6 +97,7 @@ public final class MapBoxFeatureViewController: UIViewController {
         updateMapAccessibility()
     }
 
+    /// 현재 위치 버튼, 진행 표시기, 권한 안내 UI를 구성합니다.
     private func configureControls() {
         authorizationLabel.font = .preferredFont(forTextStyle: .caption1)
         authorizationLabel.textColor = .label
@@ -155,35 +150,45 @@ public final class MapBoxFeatureViewController: UIViewController {
         ])
     }
 
+    /// UIKit 입력을 ViewModel Input에 연결하고 Output을 화면에 반영합니다.
     private func bindViewModel() {
-        locationButton.addTarget(
-            self,
-            action: #selector(didTapCurrentLocation),
-            for: .touchUpInside
+        let viewDidAppear = rx.viewDidAppear
+            .filter { [weak self] in
+                self?.session.registerAutomaticRequestIfNeeded() == true
+            }
+        let currentLocationTapped = locationButton.rx.tap
+            .do(onNext: { [weak self] in
+                self?.session.registerManualRequest()
+            })
+
+        let output = viewModel.transform(
+            input: MapBoxFeatureViewModel.Input(
+                viewDidAppear: viewDidAppear,
+                currentLocationTapped: currentLocationTapped,
+                viewDidDisappear: rx.viewDidDisappear.asObservable()
+            )
         )
 
-        viewModel.stateObservable
-            .observe(on: MainScheduler.instance)
-            .subscribe(onNext: { [weak self] _ in
-                self?.renderState()
+        output.state
+            .drive(onNext: { [weak self] state in
+                self?.renderState(state)
             })
             .disposed(by: disposeBag)
 
-        viewModel.cameraCommandObservable
-            .observe(on: MainScheduler.instance)
-            .subscribe(onNext: { [weak self] command in
+        output.cameraCommand
+            .emit(onNext: { [weak self] command in
                 self?.moveCamera(to: command)
             })
             .disposed(by: disposeBag)
 
-        viewModel.alertObservable
-            .observe(on: MainScheduler.instance)
-            .subscribe(onNext: { [weak self] alert in
+        output.alert
+            .emit(onNext: { [weak self] alert in
                 self?.renderAlert(alert)
             })
             .disposed(by: disposeBag)
     }
 
+    /// Mapbox 카메라 변경을 구독해 마지막 화면 위치를 Session에 기록합니다.
     private func observeCamera() {
         mapView.mapboxMap.onCameraChanged
             .observe { [weak self] _ in
@@ -194,12 +199,16 @@ public final class MapBoxFeatureViewController: UIViewController {
             .store(in: &mapboxCancelables)
     }
 
-    @objc private func didTapCurrentLocation() {
-        session.startManually(viewModel.moveToCurrentLocation)
-    }
-
-    private func renderState() {
-        let isLoading = viewModel.isLoading
+    /// ViewModel Output의 상태를 위치 버튼과 권한 안내에 반영합니다.
+    ///
+    /// - Parameter state: 현재 위치 요청의 최신 진행 상태입니다.
+    private func renderState(
+        _ state: MapBoxFeatureViewModel.State
+    ) {
+        let isLoading = state == .requestingAuthorization || state == .locating
+        let authorizationMessage = state == .authorizationDenied
+            ? "위치 권한이 없어 현재 위치를 확인할 수 없습니다."
+            : nil
         locationButton.isEnabled = !isLoading
         locationButton.setImage(
             isLoading ? nil : UIImage(systemName: "location.fill"),
@@ -210,8 +219,8 @@ public final class MapBoxFeatureViewController: UIViewController {
         } else {
             progressView.stopAnimating()
         }
-        authorizationLabel.text = viewModel.authorizationMessage
-        authorizationLabel.isHidden = viewModel.authorizationMessage == nil
+        authorizationLabel.text = authorizationMessage
+        authorizationLabel.isHidden = authorizationMessage == nil
     }
 
     /// 현재 위치 명령을 Mapbox 카메라와 앱 수명 상태에 반영합니다.
@@ -238,6 +247,7 @@ public final class MapBoxFeatureViewController: UIViewController {
         updateMapAccessibility()
     }
 
+    /// Mapbox가 실제로 표시 중인 카메라를 Session에 기록합니다.
     private func recordVisibleCamera() {
         let cameraState = mapView.mapboxMap.cameraState
         session.recordCamera(
@@ -250,25 +260,19 @@ public final class MapBoxFeatureViewController: UIViewController {
         updateMapAccessibility()
     }
 
+    /// 현재 위치 중심 여부를 Mapbox 지도 접근성 값에 반영합니다.
     private func updateMapAccessibility() {
         mapView.accessibilityValue = session.cameraIsCenteredOnCurrentLocation
             ? "현재 위치 중심"
             : "사용자 이동 위치"
     }
 
-    /// ViewModel의 알림 상태를 UIKit 경고창으로 표시하거나 닫습니다.
+    /// ViewModel의 일회성 알림 이벤트를 UIKit 경고창으로 표시합니다.
     ///
-    /// - Parameter alert: 표시할 위치 오류이며 `nil`이면 현재 경고창을 닫습니다.
+    /// - Parameter alert: 한 번 표시할 위치 오류입니다.
     private func renderAlert(
-        _ alert: MapBoxAlert?
+        _ alert: MapBoxAlert
     ) {
-        guard let alert else {
-            presentedAlertID = nil
-            if presentedViewController is UIAlertController {
-                dismiss(animated: true)
-            }
-            return
-        }
         guard presentedAlertID != alert.id else { return }
         presentedAlertID = alert.id
 
@@ -280,9 +284,15 @@ public final class MapBoxFeatureViewController: UIViewController {
         alertController.view.accessibilityIdentifier = alert.kind == .timeout
             ? "mapbox-location-timeout-alert"
             : "mapbox-location-error-alert"
-        alertController.addAction(UIAlertAction(title: "확인", style: .default) { [weak self] _ in
-            self?.viewModel.dismissAlert()
-        })
+        alertController.addAction(
+            UIAlertAction(
+                title: "확인",
+                style: .default,
+                handler: { [weak self] _ in
+                    self?.presentedAlertID = nil
+                }
+            )
+        )
         present(alertController, animated: true)
     }
 }

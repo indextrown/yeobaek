@@ -14,29 +14,20 @@ public final class MapBoxSession {
     private var currentLocationTarget: MapBoxCoordinate?
     public init() {}
 
-    /// 아직 자동 실행하지 않았다면 요청 동작을 한 번 수행합니다.
+    /// 아직 자동 요청을 기록하지 않았다면 앱 수명에서 한 번만 기록합니다.
     ///
-    /// - Parameter request: 최초 화면 활성화 시 수행할 위치 요청입니다.
-    /// - Returns: 이번 호출에서 요청을 시작했는지 여부입니다.
+    /// - Returns: 이번 호출에서 자동 요청을 새로 기록했는지 여부입니다.
     @discardableResult
-    func startAutomatically(
-        _ request: () -> Void
-    ) -> Bool {
+    func registerAutomaticRequestIfNeeded() -> Bool {
         guard !didStartAutomatically else { return false }
         didStartAutomatically = true
         requestCount += 1
-        request()
         return true
     }
 
-    /// 사용자가 요청한 위치 이동을 실행하고 앱 실행 수명의 요청 횟수를 기록합니다.
-    ///
-    /// - Parameter request: 내 위치 버튼 입력으로 수행할 위치 요청입니다.
-    func startManually(
-        _ request: () -> Void
-    ) {
+    /// 사용자가 요청한 위치 이동 횟수를 앱 실행 수명에 기록합니다.
+    func registerManualRequest() {
         requestCount += 1
-        request()
     }
 
     /// 현재 위치 카메라 명령의 목표 좌표를 기록합니다.
