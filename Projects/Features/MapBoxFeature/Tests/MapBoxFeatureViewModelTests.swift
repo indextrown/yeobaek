@@ -15,7 +15,7 @@ struct MapBoxFeatureViewModelTests {
 
     @Test("실제 Mapbox 카메라 callback이 목표 좌표에 도달해야 현재 위치 중심으로 표시한다")
     func cameraCallbackConfirmsCurrentLocationAndPersistsManualCamera() {
-        let session = MapBoxFeatureSession()
+        let session = MapBoxSession()
         let target = MapBoxCoordinate(latitude: 37.5, longitude: 127)
         session.expectCurrentLocationCamera(target)
 
@@ -33,7 +33,7 @@ struct MapBoxFeatureViewModelTests {
 
     @Test("이미 실제 카메라가 목표 좌표에 있으면 같은 위치 명령도 중심 상태를 유지한다")
     func repeatedCameraCommandKeepsConfirmedCenterState() {
-        let session = MapBoxFeatureSession()
+        let session = MapBoxSession()
         let target = MapBoxCoordinate(latitude: 37.5, longitude: 127)
         session.recordCamera(coordinate: target, zoom: MapBoxFeatureLocationPolicy.cameraZoom)
 
@@ -56,7 +56,7 @@ struct MapBoxFeatureViewModelTests {
 
     @Test("화면 활성화 연결은 같은 세션에서 자동 요청을 한 번만 시작한다")
     func automaticRequestStartsOncePerSession() {
-        let session = MapBoxFeatureSession()
+        let session = MapBoxSession()
         let firstProvider = RxLocationProvider()
         let recreatedProvider = RxLocationProvider()
         let firstViewModel = MapBoxFeatureViewModel(provider: firstProvider)
@@ -70,7 +70,7 @@ struct MapBoxFeatureViewModelTests {
         #expect(recreatedViewModel.cameraCommand == nil)
         #expect(recreatedViewModel.alert == nil)
 
-        let independentSession = MapBoxFeatureSession()
+        let independentSession = MapBoxSession()
         #expect(independentSession.startAutomatically(recreatedViewModel.moveToCurrentLocation))
         #expect(recreatedProvider.locationRequestCount == 1)
         firstViewModel.cancel()
@@ -79,7 +79,7 @@ struct MapBoxFeatureViewModelTests {
 
     @Test("수동 요청은 같은 세션의 최초 자동 요청 권리를 소모하지 않는다")
     func manualRequestDoesNotConsumeAutomaticRequest() {
-        let session = MapBoxFeatureSession()
+        let session = MapBoxSession()
         let provider = RxLocationProvider()
         let viewModel = MapBoxFeatureViewModel(provider: provider)
 
@@ -98,7 +98,7 @@ struct MapBoxFeatureViewModelTests {
 
     @Test("자동 요청이 권한 거부로 끝나도 같은 세션의 재진입은 반복하지 않는다")
     func deniedAutomaticRequestIsNotRepeatedAfterReentry() {
-        let session = MapBoxFeatureSession()
+        let session = MapBoxSession()
         let firstProvider = RxLocationProvider(authorization: .denied)
         let recreatedProvider = RxLocationProvider()
         let firstViewModel = MapBoxFeatureViewModel(provider: firstProvider)
@@ -117,7 +117,7 @@ struct MapBoxFeatureViewModelTests {
 
     @Test("자동 요청이 위치 실패로 끝나도 같은 세션의 재진입은 반복하지 않는다")
     func failedAutomaticRequestIsNotRepeatedAfterReentry() {
-        let session = MapBoxFeatureSession()
+        let session = MapBoxSession()
         let firstProvider = RxLocationProvider()
         let recreatedProvider = RxLocationProvider()
         let firstViewModel = MapBoxFeatureViewModel(provider: firstProvider)
@@ -137,7 +137,7 @@ struct MapBoxFeatureViewModelTests {
 
     @Test("자동 요청 성공 뒤 같은 세션의 재진입은 반복하지 않는다")
     func successfulAutomaticRequestIsNotRepeatedAfterReentry() {
-        let session = MapBoxFeatureSession()
+        let session = MapBoxSession()
         let firstProvider = RxLocationProvider()
         let recreatedProvider = RxLocationProvider()
         let firstViewModel = MapBoxFeatureViewModel(provider: firstProvider)
@@ -156,7 +156,7 @@ struct MapBoxFeatureViewModelTests {
 
     @Test("자동 요청 timeout 뒤 같은 세션의 재진입은 반복하지 않는다")
     func timedOutAutomaticRequestIsNotRepeatedAfterReentry() async throws {
-        let session = MapBoxFeatureSession()
+        let session = MapBoxSession()
         let firstProvider = RxLocationProvider()
         let recreatedProvider = RxLocationProvider()
         let firstViewModel = MapBoxFeatureViewModel(

@@ -4,7 +4,7 @@ import SwiftUI
 
 /// UIKit으로 구현한 Mapbox 화면을 SwiftUI 앱과 Demo에 연결합니다.
 public struct MapBoxFeatureView: View {
-    private let session: MapBoxFeatureSession
+    private let session: MapBoxSession
     private let hasAccessToken: Bool
 
     /// 앱 수명 상태와 토큰 판정 경계를 주입해 Mapbox 화면을 만듭니다.
@@ -14,7 +14,7 @@ public struct MapBoxFeatureView: View {
     ///   - accessToken: 테스트 또는 앱 설정에서 전달할 공개 Mapbox 토큰입니다.
     @MainActor
     public init(
-        session: MapBoxFeatureSession,
+        session: MapBoxSession,
         accessToken: String? = AppConfiguration.mapboxAccessToken
     ) {
         self.session = session
@@ -31,7 +31,7 @@ public struct MapBoxFeatureView: View {
     /// 기본 앱 수명 상태와 AppConfiguration의 Mapbox 토큰으로 화면을 만듭니다.
     @MainActor
     public init() {
-        self.init(session: MapBoxFeatureSession())
+        self.init(session: MapBoxSession())
     }
 
     public var body: some View {

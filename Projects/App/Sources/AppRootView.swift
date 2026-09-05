@@ -12,7 +12,7 @@ struct AppRootView: View {
 
     @State private var selectedProvider: MapProvider = .mapKit
     @State private var mapKitSession = MapFeatureSession()
-    @State private var mapboxSession = MapBoxFeatureSession()
+    @State private var mapboxSession = MapBoxSession()
 
     var body: some View {
         ZStack(alignment: .top) {

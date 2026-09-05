@@ -6,7 +6,7 @@ import UIKit
 /// Mapbox 지도와 현재 위치 UI를 UIKit으로 표시하고 Rx ViewModel의 출력을 렌더링합니다.
 @MainActor
 public final class MapBoxFeatureViewController: UIViewController {
-    private let session: MapBoxFeatureSession
+    private let session: MapBoxSession
     private let viewModel: MapBoxFeatureViewModel
     private let mapView: MapView
     private let locationButton = UIButton(type: .system)
@@ -22,7 +22,7 @@ public final class MapBoxFeatureViewController: UIViewController {
     ///   - session: 자동 요청 여부와 마지막 카메라를 보관하는 앱 수명 상태입니다.
     ///   - viewModel: 위치 요청과 화면 상태를 관리하는 Rx ViewModel입니다.
     public init(
-        session: MapBoxFeatureSession,
+        session: MapBoxSession,
         viewModel: MapBoxFeatureViewModel = MapBoxFeatureViewModel()
     ) {
         self.session = session
