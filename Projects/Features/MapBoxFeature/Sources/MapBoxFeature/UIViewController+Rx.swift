@@ -9,7 +9,7 @@ extension Reactive where Base: UIViewController {
         let events = methodInvoked(
             #selector(UIViewController.viewDidAppear(_:))
         )
-        .map { _ in () }
+        .mapToVoid()
 
         return ControlEvent(events: events)
     }
@@ -19,8 +19,18 @@ extension Reactive where Base: UIViewController {
         let events = methodInvoked(
             #selector(UIViewController.viewDidDisappear(_:))
         )
-        .map { _ in () }
+        .mapToVoid()
 
         return ControlEvent(events: events)
+    }
+}
+
+public extension ObservableType {
+    
+    /// 모든 Element를 `Void`로 변환합니다.
+    ///
+    /// - Returns: 원본 이벤트의 값은 버리고 발생 시점만 유지한 Observable입니다.
+    func mapToVoid() -> Observable<Void> {
+        return map { _ in () }
     }
 }
