@@ -11,23 +11,25 @@ struct AppRootView: View {
     }
 
     @State private var selectedProvider: MapProvider = .mapKit
+    @State private var mapKitSession = MapFeatureSession()
+    @State private var mapboxSession = MapBoxFeatureSession()
 
     var body: some View {
         ZStack(alignment: .top) {
             Group {
                 switch selectedProvider {
                 case .mapKit:
-                    MapFeatureView()
+                    MapFeatureView(session: mapKitSession)
                 case .mapbox:
-                    MapBoxFeatureView()
+                    MapBoxFeatureView(session: mapboxSession)
                 }
             }
-            .ignoresSafeArea()
 
             Picker("지도 제공자", selection: $selectedProvider) {
                 ForEach(MapProvider.allCases) { provider in
                     Text(provider.rawValue)
                         .tag(provider)
+                        .accessibilityIdentifier(provider.rawValue)
                 }
             }
             .pickerStyle(.segmented)

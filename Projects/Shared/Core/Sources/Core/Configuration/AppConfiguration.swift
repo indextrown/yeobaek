@@ -2,7 +2,11 @@ import Foundation
 
 public enum AppConfiguration {
     public static var mapboxAccessToken: String? {
-        value(for: "MBXAccessToken")
+        if let override = ProcessInfo.processInfo.environment["UITEST_MAPBOX_ACCESS_TOKEN"] {
+            return override.isEmpty ? nil : override
+        }
+
+        return value(for: "MBXAccessToken")
     }
 
     public static var seoulAPIKey: String? {

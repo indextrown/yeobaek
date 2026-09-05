@@ -17,6 +17,7 @@ let project = Project(
                     "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                     "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                     "MBXAccessToken": "$(MAPBOX_ACCESS_TOKEN)",
+                    "NSLocationWhenInUseUsageDescription": "현재 위치로 지도를 이동하기 위해 위치 정보가 필요합니다.",
                     "SeoulAPIKey": "$(SEOUL_API_KEY)",
                     "UILaunchScreen": [:],
                     "UISupportedInterfaceOrientations": [
@@ -46,14 +47,30 @@ let project = Project(
                 configurations: [
                     .debug(
                         name: "Debug",
-                        xcconfig: .relativeToManifest("Secrets.xcconfig")
+                        xcconfig: .relativeToManifest("Configuration.xcconfig")
                     ),
                     .release(
                         name: "Release",
-                        xcconfig: .relativeToManifest("Secrets.xcconfig")
+                        xcconfig: .relativeToManifest("Configuration.xcconfig")
                     ),
                 ]
             )
-        )
+        ),
+        .target(
+            name: "YeobaekAppUITests",
+            destinations: [.iPhone],
+            product: .uiTests,
+            bundleId: "com.indextrown.yeobaek.ui-tests",
+            deploymentTargets: .iOS("17.0"),
+            sources: ["UITests/**"],
+            dependencies: [
+                .target(name: "YeobaekApp"),
+            ],
+            settings: .settings(
+                base: [
+                    "SWIFT_VERSION": "6.0",
+                ]
+            )
+        ),
     ]
 )

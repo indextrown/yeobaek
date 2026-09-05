@@ -1,0 +1,5 @@
+// 저장소 기본값. 로컬 비밀값 파일이 있으면 그 값을 선택적으로 덮어씁니다.
+MAPBOX_ACCESS_TOKEN =
+SEOUL_API_KEY =
+
+#include? "Secrets.xcconfig"

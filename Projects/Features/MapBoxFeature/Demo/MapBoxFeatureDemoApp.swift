@@ -3,10 +3,11 @@ import SwiftUI
 
 @main
 struct MapBoxFeatureDemoApp: App {
+    @State private var session = MapBoxFeatureSession()
+
     var body: some Scene {
         WindowGroup {
-            MapBoxFeatureView()
-                .ignoresSafeArea()
+            MapBoxFeatureView(session: session)
         }
     }
 }
