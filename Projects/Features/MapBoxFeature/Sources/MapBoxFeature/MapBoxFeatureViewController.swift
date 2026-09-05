@@ -6,11 +6,15 @@ import UIKit
 
 /// Mapbox 지도와 현재 위치 UI를 UIKit으로 표시하고 Rx ViewModel의 출력을 렌더링합니다.
 public final class MapBoxFeatureViewController: UIViewController {
+    // MARK: - Dependencies
+
     /// 자동 위치 요청 여부와 마지막 지도 카메라를 유지하는 상태입니다.
     private let session: MapBoxSession
 
     /// 화면 입력을 위치 조회 상태와 출력으로 변환하는 Rx ViewModel입니다.
     private let viewModel: MapBoxFeatureViewModel
+
+    // MARK: - UI
 
     /// Mapbox 지도와 카메라를 실제로 표시하는 UIKit View입니다.
     private let mapView: MapView
@@ -24,11 +28,15 @@ public final class MapBoxFeatureViewController: UIViewController {
     /// 위치 권한이 거부됐을 때 안내 문구를 표시합니다.
     private let authorizationLabel = UILabel()
 
+    // MARK: - Subscriptions
+
     /// Mapbox 카메라 이벤트 구독의 수명을 관리합니다.
     private var mapboxCancelables = Set<AnyCancelable>()
 
     /// ViewModel Output 구독의 수명을 ViewController와 함께 관리합니다.
     private var disposeBag = DisposeBag()
+
+    // MARK: - Presentation State
 
     /// 동일한 위치 오류 알림을 중복으로 표시하지 않기 위한 식별자입니다.
     private var presentedAlertID: UUID?

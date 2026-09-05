@@ -1,5 +1,6 @@
-import Foundation
+@_exported import RxCocoa
+@_exported import RxRelay
+@_exported import RxSwift
 
-// Dependency hub for external SDKs. Source files import the concrete modules
-// they use instead of relying on re-exported imports.
+/// 외부 Rx 모듈을 하나의 프로젝트 의존성으로 사용할 수 있게 재노출합니다.
 public enum ThirdPartyModule {}
