@@ -1,5 +1,4 @@
 import Foundation
-import Observation
 import RxSwift
 
 /// 기존 Mapbox 화면의 표현을 보존하는 현재 위치 기능 기본 정책입니다.
@@ -24,7 +23,6 @@ public struct MapBoxAlert: Identifiable, Equatable, Sendable {
 }
 
 @MainActor
-@Observable
 public final class MapBoxFeatureSession {
     private var didStartAutomatically = false
     public private(set) var requestCount = 0
@@ -105,23 +103,52 @@ public final class MapBoxFeatureSession {
 }
 
 @MainActor
-@Observable
 public final class MapBoxFeatureViewModel {
     public enum State: Equatable { case idle, requestingAuthorization, locating, located, authorizationDenied, failed }
     private enum Event { case requestingAuthorization, locating, denied, located(MapBoxCoordinate), failed(Bool) }
 
-    public private(set) var state: State = .idle
-    public private(set) var cameraCommand: MapBoxCameraCommand?
-    public private(set) var alert: MapBoxAlert?
+    public private(set) var state: State = .idle {
+        didSet { stateSubject.onNext(state) }
+    }
+    public private(set) var cameraCommand: MapBoxCameraCommand? {
+        didSet {
+            if let cameraCommand {
+                cameraCommandSubject.onNext(cameraCommand)
+            }
+        }
+    }
+    public private(set) var alert: MapBoxAlert? {
+        didSet { alertSubject.onNext(alert) }
+    }
     public private(set) var requestCount = 0
     public var authorizationMessage: String? { state == .authorizationDenied ? "위치 권한이 없어 현재 위치를 확인할 수 없습니다." : nil }
     public var isLoading: Bool { state == .requestingAuthorization || state == .locating }
 
-    @ObservationIgnored private let provider: any MapboxLocationProviding
-    @ObservationIgnored private let timeout: RxTimeInterval
-    @ObservationIgnored private let input = PublishSubject<Void>()
-    @ObservationIgnored private var disposeBag = DisposeBag()
-    @ObservationIgnored private var isBound = false
+    /// 화면 상태를 UIKit에 전달하는 오류 없는 Rx 스트림입니다.
+    public var stateObservable: Observable<State> {
+        stateSubject
+            .asObservable()
+            .distinctUntilChanged()
+    }
+
+    /// 새로운 카메라 이동 명령만 UIKit에 전달하는 Rx 스트림입니다.
+    public var cameraCommandObservable: Observable<MapBoxCameraCommand> {
+        cameraCommandSubject.asObservable()
+    }
+
+    /// 표시하거나 닫아야 할 알림을 UIKit에 전달하는 Rx 스트림입니다.
+    public var alertObservable: Observable<MapBoxAlert?> {
+        alertSubject.asObservable()
+    }
+
+    private let provider: any MapboxLocationProviding
+    private let timeout: RxTimeInterval
+    private let input = PublishSubject<Void>()
+    private let stateSubject = BehaviorSubject<State>(value: .idle)
+    private let cameraCommandSubject = PublishSubject<MapBoxCameraCommand>()
+    private let alertSubject = BehaviorSubject<MapBoxAlert?>(value: nil)
+    private var disposeBag = DisposeBag()
+    private var isBound = false
 
     /// RxSwift 위치 흐름을 관리하는 ViewModel을 만듭니다.
     ///
