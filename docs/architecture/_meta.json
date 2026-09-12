@@ -1,4 +1,6 @@
 {
+  "architecture-overview": "프로젝트 아키텍처",
+  "app-startup-flow": "앱 시작 및 지도 화면 흐름",
   "mvvm-clean-architecture-rxswift": "MVVM, Clean Architecture, RxSwift 적용하기",
   "static-and-dynamic-frameworks": "Static Framework와 Dynamic Framework 이해하기"
 }

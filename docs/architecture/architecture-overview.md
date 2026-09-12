@@ -1,0 +1,84 @@
+---
+title: Yeobaek 프로젝트 아키텍처
+description: 현재 Tuist 모듈의 책임, 실제 의존 방향, 기능을 추가할 위치를 설명한다.
+---
+
+# Yeobaek 프로젝트 아키텍처
+
+## 이 문서에서 확인할 것
+
+Yeobaek은 Tuist로 App, Feature, Domain, Data, Shared를 분리한 iOS 멀티 모듈 프로젝트다. 목표 아키텍처가 아니라 현재 `Project.swift`와 소스 구조를 기준으로 설명한다.
+
+아키텍처 방향은 MVVM, Clean Architecture, RxSwift 조합이다. 다만 모든 계층이 완성된 상태는 아니다. 앱은 현재 두 지도 Feature와 세션을 직접 조립하고 있으며, GRDB는 기술 선택만 완료되고 패키지와 마이그레이션은 아직 연결되지 않았다.
+
+## 모듈별 책임
+
+| 영역 | 현재 책임 | 새 코드를 둘 때 |
+| --- | --- | --- |
+| `Projects/App` | `@main` 진입점, 루트 화면, 지도 제공자 전환, 앱 설정과 리소스 | 앱 전체에서 한 번만 결정하는 조립과 시작 흐름을 둔다. |
+| `Projects/Features/MapFeature` | MapKit 기반 지도 화면과 독립 실행 Demo | MapKit에만 필요한 UI와 지도 상호작용을 둔다. |
+| `Projects/Features/MapBoxFeature` | UIKit, RxSwift, MVVM 기반 Mapbox 화면과 SwiftUI 래퍼, 독립 실행 Demo | Mapbox에만 필요한 View, ViewModel, Session과 렌더링을 둔다. |
+| `Projects/Domain` | 장소, 좌표, 혼잡도 같은 Entity와 Repository protocol | 외부 프레임워크를 모르는 비즈니스 모델과 규칙을 둔다. |
+| `Projects/Data` | DTO, 응답 변환, Repository 구현 | API나 DB의 구체 타입을 Domain Entity로 변환하는 코드를 둔다. |
+| `Projects/Shared/Core` | 여러 모듈에서 쓰는 기반 코드, 앱 설정 접근, UIKit-SwiftUI 연결 도구 | 특정 기능에 종속되지 않는 공통 기반 코드를 둔다. |
+| `Projects/Shared/Featcher` | 네트워크 요청 실행을 실험·공유하는 모듈과 Demo·테스트 | 범용 요청 실행과 그 검증을 둔다. 기능별 API 정책은 Data에 둔다. |
+| `Projects/Shared/ThirdParty` | MapboxMaps, RxSwift, RxCocoa, RxRelay 패키지 연결 | 외부 패키지 제품 추가와 재노출을 관리한다. |
+| `Projects/Shared/RxExtension` | ViewController 생명주기와 `mapToVoid` 같은 범용 Rx 확장 | 두 개 이상의 화면에서 재사용할 Rx 확장만 둔다. |
+| `Projects/Shared/RxLab` | RxSwift Input/Output MVVM 학습용 Counter와 Demo | 제품 코드에 영향을 주지 않는 Rx 실험을 둔다. |
+
+## 현재 의존 방향
+
+```text
+App
+├─ Features
+│  ├─ MapFeature
+│  └─ MapBoxFeature ──> 필요한 Shared 모듈
+├─ Data ──────────────> Domain
+├─ Core ──────────────> Domain
+├─ Domain
+└─ ThirdParty
+
+Shared/RxExtension ──> Shared/ThirdParty
+Shared/RxLab ────────> Shared/ThirdParty
+```
+
+핵심 원칙은 구현 계층이 추상 계층을 바라보는 것이다. `Data`는 `Domain`의 Repository protocol을 구현하고, Feature는 DTO가 아닌 Domain Entity를 사용한다. 외부 패키지는 Domain으로 전파하지 않는다.
+
+현재 App 타깃은 Data, Domain, Core, ThirdParty와 두 지도 Feature를 직접 의존한다. 조립 루트가 단순한 초기 단계라 가능한 구조지만, UseCase와 Repository 조립이 늘어나면 App 전용 DI 구성을 추가해 구체 타입 생성을 한곳으로 모은다.
+
+## Framework 구성
+
+- `MapFeature`와 `MapBoxFeature`는 최종 앱과 Demo 앱에서 사용하는 static framework다.
+- `Domain`, `Data`, `Core`, `Featcher`, `ThirdParty`, `RxExtension`, `RxLab`은 dynamic framework다.
+- 실행 가능한 코드는 `YeobaekApp` 또는 각 Demo 앱이 최종적으로 연결하고 필요한 dynamic framework를 임베딩한다.
+- 제품 타입을 변경할 때는 기기 실행 시 중복 심볼과 `Library not loaded` 가능성을 함께 확인한다.
+
+자세한 선택 기준은 [Static Framework와 Dynamic Framework](static-and-dynamic-frameworks.md)에서 확인한다.
+
+## 기능을 추가할 위치
+
+| 변경 내용 | 기본 위치 | 함께 확인할 곳 |
+| --- | --- | --- |
+| MapKit 화면 동작 | `Projects/Features/MapFeature` | `MapFeatureDemo`, 위치 권한 |
+| Mapbox 화면 동작 | `Projects/Features/MapBoxFeature` | ViewModel Input/Output, `MapBoxSession`, `MapBoxFeatureDemo` |
+| 공공데이터 응답 모델 | `Projects/Data` | Domain Entity 변환, Repository 구현 |
+| 앱에서 사용하는 장소·혼잡도 모델 | `Projects/Domain` | Repository protocol과 UseCase |
+| 공통 앱 설정·브리지 | `Projects/Shared/Core` | Bundle 값의 실제 소유자인 실행 타깃 |
+| 범용 Rx 확장 | `Projects/Shared/RxExtension` | RxCocoa UI trait와 MainActor 범위 |
+| 외부 라이브러리 | `Projects/Shared/ThirdParty` | 사용하는 Feature의 직접 의존 선언 |
+| 독립 기술 실험 | `Projects/Shared/RxLab` 또는 별도 Lab 모듈 | 제품 모듈이 Lab을 의존하지 않는지 확인 |
+
+## 현재 경계에서 주의할 점
+
+- `AppRootView`가 지도 제공자 선택과 두 Session의 생명주기를 직접 관리한다.
+- Domain과 Data의 기본 경계는 마련됐지만 UseCase와 앱 조립 방식은 기능 구현에 맞춰 확장해야 한다.
+- GRDB는 예정 기술이다. DB 연결, Record, Migration을 추가할 때 Data가 구현을 소유하고 Domain에는 GRDB 타입을 노출하지 않는다.
+- API 키는 라이브러리 모듈의 Bundle이 아니라 현재 실행 중인 App 또는 Demo Bundle에 들어간다.
+- Preview 결과는 활성 Scheme의 실행 호스트와 xcconfig 적용 여부에 따라 달라진다.
+
+## 관련 문서
+
+- [앱 시작 및 지도 화면 흐름](app-startup-flow.md)
+- [MVVM, Clean Architecture, RxSwift 적용하기](mvvm-clean-architecture-rxswift.md)
+- [Static Framework와 Dynamic Framework](static-and-dynamic-frameworks.md)
+- [Xcode Target, Scheme, Bundle, Preview 이해하기](../development/xcode-target-scheme-bundle-preview.md)
