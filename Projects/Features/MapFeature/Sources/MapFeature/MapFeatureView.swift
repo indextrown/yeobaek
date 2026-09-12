@@ -81,16 +81,18 @@ public struct MapFeatureView: View {
             .onChange(of: viewModel.cameraCommand) { _, command in
                 guard let command else { return }
                 session.expectCurrentLocationCamera(command.coordinate)
-                cameraPosition = .region(MKCoordinateRegion(
-                    center: CLLocationCoordinate2D(
-                        latitude: command.coordinate.latitude,
-                        longitude: command.coordinate.longitude
-                    ),
-                    span: MKCoordinateSpan(
-                        latitudeDelta: MapFeatureLocationPolicy.cameraSpan,
-                        longitudeDelta: MapFeatureLocationPolicy.cameraSpan
-                    )
-                ))
+                withAnimation(.easeInOut(duration: 0.8)) {
+                    cameraPosition = .region(MKCoordinateRegion(
+                        center: CLLocationCoordinate2D(
+                            latitude: command.coordinate.latitude,
+                            longitude: command.coordinate.longitude
+                        ),
+                        span: MKCoordinateSpan(
+                            latitudeDelta: MapFeatureLocationPolicy.cameraSpan,
+                            longitudeDelta: MapFeatureLocationPolicy.cameraSpan
+                        )
+                    ))
+                }
                 // SwiftUI가 명령을 수락한 즉시 접근성 상태를 갱신하고,
                 // 이후 실제 카메라 callback이 사용자 이동 여부를 다시 확정합니다.
                 session.recordCamera(
