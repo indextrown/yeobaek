@@ -13,6 +13,7 @@ let project = Project(
             dependencies: [
                 .project(target: "Core", path: "../../Shared/Core"),
                 .project(target: "Featcher", path: "../../Shared/Featcher"),
+                .project(target: "RxExtension", path: "../../Shared/RxExtension"),
                 .project(target: "ThirdParty", path: "../../Shared/ThirdParty"),
                 .external(name: "MapboxMaps"),
                 .external(name: "RxCocoa"),

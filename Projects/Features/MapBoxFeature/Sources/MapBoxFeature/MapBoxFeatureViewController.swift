@@ -1,6 +1,7 @@
 import CoreLocation
 import MapboxMaps
 import RxCocoa
+import RxExtension
 import RxSwift
 import UIKit
 
