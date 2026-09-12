@@ -27,6 +27,7 @@ main
 - 한 브랜치는 하나의 작업 목적만 가진다.
 - 관련 파일만 명시적으로 stage하고 하나의 커밋에는 하나의 논리적 변경을 담는다.
 - 원격 브랜치에 push한 뒤 Pull Request에서 변경 이유와 확인 방법을 설명한다.
+- GitHub Issue는 선택 사항이다. 사용자가 요청하거나 별도 추적이 필요할 때만 만들며, Issue 없이도 작업 브랜치에서 Pull Request를 생성할 수 있다.
 - `git flow init`, `git flow feature start` 같은 별도 확장 명령은 사용하지 않는다.
 
 ## 브랜치 이름
@@ -167,6 +168,8 @@ git push
 ```
 
 ### 8. Pull Request 생성과 병합
+
+Yeobaek에서는 Pull Request를 만들기 위해 GitHub Issue를 먼저 만들 필요가 없다. 관련 Issue가 이미 있거나 사용자가 Issue 생성을 요청한 경우에만 연결한다. Issue가 없다면 PR의 `Related Issues` 항목에는 `-` 한 줄만 적고 `없음` 등의 설명은 덧붙이지 않는다.
 
 Pull Request에는 다음 내용을 작성한다.
 
