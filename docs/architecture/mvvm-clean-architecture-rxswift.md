@@ -13,7 +13,13 @@ description: "여백 앱의 화면 상태, 비즈니스 규칙, 데이터 구현
 
 | 기술 | 책임 | 이 프로젝트에서 해결하는 문제 |
 | --- | --- | --- |
-| MVVM | View와 ViewModel 분리 | UIKit과 SwiftUI 화면에서 표시 로직을 분리해요. |
+| MVVM | View와 ViewModel 분리 | UIKit 기반 Feature와 SwiftUI 기반 MapFeature에서 표시 로직을 분리해요. |
+
+## Yeobaek의 UI 구현 기준
+
+Yeobaek의 제품 Feature는 UIKit + RxSwift + MVVM을 기본으로 해요. `MapBoxFeature`는 UIKit ViewController가 화면을 구성하고 RxSwift와 RxCocoa로 ViewModel의 Input과 Output을 연결해요.
+
+`MapFeature`만 SwiftUI로 구현하는 예외예요. App에 남아 있는 SwiftUI 진입점과 `MapBoxFeatureView` 같은 타입은 현재 UIKit 화면을 연결하기 위한 호스트 또는 래퍼이며, Mapbox 화면 자체의 구현 방식은 UIKit이에요.
 | Clean Architecture | 계층과 의존 방향 정의 | 지도 SDK, 네트워크, GRDB가 Domain 규칙으로 들어오지 않게 해요. |
 | RxSwift | 입력과 출력의 비동기 연결 | 버튼 입력, 위치 조회, 로딩 상태, 오류 이벤트를 하나의 흐름으로 다뤄요. |
 | GRDB | SQLite 기반 로컬 저장 | 장소, 경계, 혼잡도 캐시를 명시적인 SQL과 migration으로 관리해요. |
@@ -28,7 +34,7 @@ App은 Composition Root예요. 실제 Repository 구현, UseCase, ViewModel, Fea
 
 ### Features
 
-Feature는 화면과 사용자 상호작용을 관리해요. UIKit ViewController나 SwiftUI View, ViewModel, 화면 전용 상태와 표시 모델을 둬요.
+Feature는 화면과 사용자 상호작용을 관리해요. 기본적으로 UIKit ViewController와 ViewModel, 화면 전용 상태와 표시 모델을 두고, `MapFeature`에만 SwiftUI View를 사용해요.
 
 ViewModel은 Input을 받아 Output을 만들어요. View는 Output을 그릴 뿐 비즈니스 규칙이나 데이터 저장 방법을 결정하지 않아요.
 
@@ -76,7 +82,7 @@ Domain ────> 외부 프레임워크에 의존하지 않음
 
 ## MVVM Input과 Output
 
-ViewModel은 UIKit이나 SwiftUI 이벤트를 직접 소유하지 않고 Input으로 받아요. 화면이 필요한 값과 명령은 Output으로 반환해요.
+ViewModel은 UIKit 컨트롤 이벤트를 직접 소유하지 않고 Input으로 받아요. 화면이 필요한 값과 명령은 Output으로 반환해요. SwiftUI 기반 `MapFeature`에서도 View와 상태 처리의 경계를 같은 원칙으로 분리해요.
 
 ```swift
 public struct Input {

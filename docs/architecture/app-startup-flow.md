@@ -9,6 +9,8 @@ description: YeobaekApp 진입부터 MapKit과 Mapbox 화면을 선택하고 세
 
 Yeobaek은 SwiftUI App 생명주기를 사용한다. `YeobaekApp`이 `AppRootView`를 만들고, 루트 화면이 지도 제공자 선택과 두 지도 Session의 생명주기를 관리한다. 앱 시작, 루트 화면, 지도 전환 또는 전역 초기화를 바꿀 때 이 흐름을 먼저 확인한다.
 
+현재 App 진입점과 지도 전환 컨테이너는 SwiftUI지만 제품 Feature의 UI 기준과는 구분한다. `MapFeature`만 SwiftUI 화면이며, `MapBoxFeature`의 실제 화면은 UIKit + RxSwift + MVVM으로 구현한다. `MapBoxFeatureView`는 UIKit 화면을 현재 SwiftUI App 계층에 연결하는 래퍼다.
+
 ## 시작 순서
 
 | 순서 | 실행 위치 | 동작 |
@@ -38,8 +40,8 @@ UIApplication
 | `AppRootView` | 지도 제공자 선택, Feature 전환, Session 보관 | `WindowGroup` |
 | `MapFeatureSession` | MapKit 화면에서 유지해야 하는 상태와 동작 | `AppRootView`의 `@State` |
 | `MapBoxSession` | Mapbox 화면에서 유지해야 하는 상태와 동작 | `AppRootView`의 `@State` |
-| `MapFeatureView` | MapKit 기반 지도 UI | `AppRootView` |
-| `MapBoxFeatureView` | UIKit Mapbox 화면을 SwiftUI 계층에 연결 | `AppRootView` |
+| `MapFeatureView` | 유일한 SwiftUI Feature인 MapKit 지도 UI | `AppRootView` |
+| `MapBoxFeatureView` | UIKit + RxSwift 기반 Mapbox 화면을 SwiftUI App 계층에 연결하는 래퍼 | `AppRootView` |
 
 지도 제공자를 전환해도 두 Session 인스턴스는 `AppRootView`에 남는다. 화면 내부 상태를 전환할 때마다 새로 시작해야 한다면 Session의 소유 위치와 초기화 시점을 함께 변경해야 한다.
 

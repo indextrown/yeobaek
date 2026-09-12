@@ -16,8 +16,8 @@ Yeobaek은 Tuist로 App, Feature, Domain, Data, Shared를 분리한 iOS 멀티 �
 | 영역 | 현재 책임 | 새 코드를 둘 때 |
 | --- | --- | --- |
 | `Projects/App` | `@main` 진입점, 루트 화면, 지도 제공자 전환, 앱 설정과 리소스 | 앱 전체에서 한 번만 결정하는 조립과 시작 흐름을 둔다. |
-| `Projects/Features/MapFeature` | MapKit 기반 지도 화면과 독립 실행 Demo | MapKit에만 필요한 UI와 지도 상호작용을 둔다. |
-| `Projects/Features/MapBoxFeature` | UIKit, RxSwift, MVVM 기반 Mapbox 화면과 SwiftUI 래퍼, 독립 실행 Demo | Mapbox에만 필요한 View, ViewModel, Session과 렌더링을 둔다. |
+| `Projects/Features/MapFeature` | SwiftUI + MapKit 기반 지도 화면과 독립 실행 Demo | 프로젝트에서 유일하게 SwiftUI로 구현하는 Feature이며 MapKit 전용 UI와 지도 상호작용을 둔다. |
+| `Projects/Features/MapBoxFeature` | UIKit + RxSwift + MVVM 기반 Mapbox 화면, App 연결용 SwiftUI 래퍼, 독립 실행 Demo | 실제 화면은 UIKit으로 구현하고 ViewModel의 Input/Output을 RxSwift로 연결한다. |
 | `Projects/Domain` | 장소, 좌표, 혼잡도 같은 Entity와 Repository protocol | 외부 프레임워크를 모르는 비즈니스 모델과 규칙을 둔다. |
 | `Projects/Data` | DTO, 응답 변환, Repository 구현 | API나 DB의 구체 타입을 Domain Entity로 변환하는 코드를 둔다. |
 | `Projects/Shared/Core` | 여러 모듈에서 쓰는 기반 코드, 앱 설정 접근, UIKit-SwiftUI 연결 도구 | 특정 기능에 종속되지 않는 공통 기반 코드를 둔다. |
@@ -25,6 +25,13 @@ Yeobaek은 Tuist로 App, Feature, Domain, Data, Shared를 분리한 iOS 멀티 �
 | `Projects/Shared/ThirdParty` | MapboxMaps, RxSwift, RxCocoa, RxRelay 패키지 연결 | 외부 패키지 제품 추가와 재노출을 관리한다. |
 | `Projects/Shared/RxExtension` | ViewController 생명주기와 `mapToVoid` 같은 범용 Rx 확장 | 두 개 이상의 화면에서 재사용할 Rx 확장만 둔다. |
 | `Projects/Shared/RxLab` | RxSwift Input/Output MVVM 학습용 Counter와 Demo | 제품 코드에 영향을 주지 않는 Rx 실험을 둔다. |
+
+## UI 구현 기준
+
+- `MapBoxFeature`의 실제 화면은 UIKit ViewController로 구현하고 RxSwift와 RxCocoa로 ViewModel Input/Output을 연결한다.
+- `MapFeature`는 프로젝트에서 유일하게 SwiftUI로 구현하는 Feature다.
+- `MapBoxFeatureView` 같은 SwiftUI 타입은 UIKit 화면을 현재 App 진입점이나 Preview에 연결하는 어댑터다. Mapbox 화면의 주 UI 기술을 SwiftUI로 판단하지 않는다.
+- 새로운 제품 Feature는 별도 결정이 없다면 UIKit + RxSwift + MVVM을 기본으로 한다.
 
 ## 현재 의존 방향
 

@@ -29,6 +29,7 @@
 
 - `App`은 앱 진입점과 최종 객체 조립을 담당한다. 비즈니스 규칙이나 네트워크 구현을 두지 않는다.
 - `Features`는 사용자 화면과 화면 상태를 담당한다. 다른 Feature를 직접 의존하기보다 `Domain` 또는 필요한 `Shared` 모듈을 통해 협력한다.
+- 제품 Feature의 기본 UI 구현 방식은 UIKit + RxSwift + MVVM이다. `MapFeature`만 SwiftUI로 구현하는 예외이며, `MapBoxFeature`의 SwiftUI 타입은 UIKit 화면을 App과 Preview에 연결하는 래퍼로 한정한다.
 - `Domain`은 Entity, Repository protocol, UseCase와 비즈니스 규칙을 담당한다. UIKit, MapKit, Mapbox, RxSwift, GRDB 같은 구현 기술에 의존하지 않는다.
 - `Data`는 DTO, 외부 응답 변환, Repository 구현을 담당하고 `Domain`을 의존한다.
 - `Shared/Core`는 여러 모듈에서 재사용하는 기반 코드와 앱 설정 접근을 담당한다. 특정 Feature의 화면 정책을 넣지 않는다.

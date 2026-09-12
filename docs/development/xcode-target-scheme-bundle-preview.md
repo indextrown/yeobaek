@@ -9,6 +9,8 @@ description: "Target과 Scheme의 차이, Bundle.main이 가리키는 대상, Sw
 
 모듈 안의 SwiftUI View를 Preview할 때 같은 코드인데도 선택한 Scheme에 따라 설정값이 달라질 수 있어요. 여백에서는 `YeobaekApp` Scheme으로 `MapBoxFeatureView`를 Preview했을 때 Mapbox 토큰을 찾지 못했지만, `MapBoxFeature` Scheme으로 바꾸자 지도가 정상적으로 나타났어요.
 
+여기서 `MapBoxFeatureView`는 Mapbox 화면을 SwiftUI로 구현한 View가 아니에요. UIKit + RxSwift + MVVM으로 만든 Mapbox ViewController를 App과 Preview에서 실행하기 위한 SwiftUI 래퍼예요. 프로젝트에서 실제 Feature 화면을 SwiftUI로 구현하는 모듈은 `MapFeature`뿐이에요.
+
 이 현상을 이해하려면 Target, Scheme, Bundle의 역할을 구분해야 해요. 이 문서를 읽고 나면 Feature의 Demo App이 왜 필요한지, Preview에서 `Bundle.main`이 무엇을 가리키는지, 설정값이 보이지 않을 때 어디부터 확인해야 하는지 알 수 있어요.
 
 ## Target은 무엇을 만드나요?

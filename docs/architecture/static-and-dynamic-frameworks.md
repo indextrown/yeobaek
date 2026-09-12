@@ -205,7 +205,7 @@ ThirdParty 링크 허브 = .framework
 
 이 원칙은 절대 규칙이 아니라 시작점이에요. 새로운 SDK나 특수한 배포 요구가 생기면 의존성 그래프와 최종 앱의 임베드 구조를 확인한 뒤 조정해요.
 
-Target, Scheme, Bundle, Preview 실행 환경의 관계는 [Xcode Target, Scheme, Bundle과 SwiftUI Preview 이해하기](xcode-target-scheme-bundle-preview.md)에서 이어서 확인할 수 있어요.
+Target, Scheme, Bundle, Preview 실행 환경의 관계는 [Xcode Target, Scheme, Bundle과 SwiftUI Preview 이해하기](../development/xcode-target-scheme-bundle-preview.md)에서 이어서 확인할 수 있어요.
 
 ## 참고 자료
 
