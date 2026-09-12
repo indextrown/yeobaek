@@ -16,11 +16,11 @@
 
 | 구분 | 기술 | 용도 |
 | --- | --- | --- |
-| 지도 | Mapbox | 지도 표시 및 장소별 혼잡도 시각화 |
-| UI 프레임워크 | SwiftUI | 앱 화면과 사용자 인터페이스 구현 |
-| 앱 아키텍처 | VIPER | 화면별 역할 분리 및 모듈 구성 |
+| 지도 | MapKit, Mapbox | 두 지도 방식으로 장소별 혼잡도 시각화 |
+| UI 프레임워크 | SwiftUI, UIKit | 앱 화면과 사용자 인터페이스 구현 |
+| 앱 아키텍처 | MVVM + Clean Architecture + RxSwift | 화면 상태, 비즈니스 규칙, 데이터 구현 분리 |
 | 프로젝트 관리 | Tuist | Xcode 프로젝트 생성 및 모듈 의존성 관리 |
-| 로컬 DB | Realm | 앱 내 데이터의 로컬 저장 및 조회 |
+| 로컬 DB | GRDB | SQLite 기반 장소와 혼잡도 데이터 저장 및 조회 |
 | 백엔드 | FastAPI | 혼잡도 API 연동 및 앱에 필요한 데이터 제공 |
 | 실시간 통신 | WebSocket | 백엔드에서 앱으로 혼잡도 갱신 메시지 스트리밍 |
 
@@ -60,7 +60,7 @@ mise exec -- tuist generate
 
 생성된 `Yeobaek.xcworkspace`에서 `YeobaekApp` 스킴과 iPhone 시뮬레이터를 선택해 실행합니다. 실기기 실행 시에는 App 타깃에 본인의 개발 팀과 서명 설정이 필요합니다.
 
-[팝팡의 Tuist 구성](https://github.com/team-PopPang/PopPang-iOS)을 참고해 루트 워크스페이스와 `Projects/App` 프로젝트를 분리했습니다. 현재는 App 모듈 하나만 있으며, 앱 이름과 소개 문구를 표시합니다. 지도·Realm·네트워크 SDK와 VIPER 기능 모듈은 아직 연결하지 않았습니다. AppIcon은 이미지가 없는 자리표시자입니다.
+[팝팡의 Tuist 구성](https://github.com/team-PopPang/PopPang-iOS)을 참고해 루트 워크스페이스와 프로젝트를 모듈별로 분리했습니다. 현재 App, Domain, Data, Features, Shared 계층과 MapKit·Mapbox 지도 화면, RxSwift Input/Output ViewModel을 구성했습니다. GRDB와 실제 공공데이터 네트워크 연동은 이후 단계에서 추가합니다. AppIcon은 이미지가 없는 자리표시자입니다.
 
 ```text
 Tuist.swift
@@ -130,10 +130,12 @@ Projects/
     ├── Core/
     │   └── Sources/Core/Configuration/AppConfiguration.swift
     ├── Featcher/
+    ├── RxExtension/
+    ├── RxLab/
     └── ThirdParty/
 ```
 
-`Features`와 `Shared`는 모듈이 아닌 분류용 디렉터리예요. 두 지도 Feature는 `Features` 아래에 두고, 공통으로 사용하는 `Core`, `Featcher`, `ThirdParty`는 `Shared` 아래에서 관리해요.
+`Features`와 `Shared`는 모듈이 아닌 분류용 디렉터리예요. 두 지도 Feature는 `Features` 아래에 두고, 공통으로 사용하는 `Core`, `Featcher`, `RxExtension`, `ThirdParty`는 `Shared` 아래에서 관리해요. `RxLab`도 Shared 아래에 있지만 제품 모듈이 의존하지 않는 독립 실험용 모듈이에요.
 
 기존 `Shared` 모듈은 제거했어요. `AppConfiguration`은 `Core`의 `Configuration` 폴더로 옮겼으며, 사용하는 곳에서는 `import Core`로 접근해요. 실제 키 파일은 기존 `Projects/App/Secrets.xcconfig`를 그대로 사용하고, 실행 중인 App 또는 Demo의 `Info.plist`를 `Bundle.main`으로 읽는 방식도 유지해요.
 
@@ -141,8 +143,16 @@ Projects/
 
 ## 문서
 
-- [RxSwift와 RxCocoa 타입 및 연산자 가이드](docs/rxswift-guide.md)
-- [Xcode Target, Scheme, Bundle과 SwiftUI Preview 이해하기](docs/xcode-target-scheme-bundle-preview.md)
-- [Static Framework와 Dynamic Framework 이해하기](docs/static-and-dynamic-frameworks.md)
-- [실시간 혼잡도 API 조사 및 비교](docs/실시간-혼잡도-API-조사.md)
-- [VIPER 아키텍처 이해와 여백 앱 적용](docs/viper.md)
+### 아키텍처
+
+- [MVVM, Clean Architecture, RxSwift 적용하기](docs/architecture/mvvm-clean-architecture-rxswift.md)
+- [Static Framework와 Dynamic Framework 이해하기](docs/architecture/static-and-dynamic-frameworks.md)
+
+### 개발 가이드
+
+- [RxSwift와 RxCocoa 타입 및 연산자 가이드](docs/development/rxswift-guide.md)
+- [Xcode Target, Scheme, Bundle과 SwiftUI Preview 이해하기](docs/development/xcode-target-scheme-bundle-preview.md)
+
+### 기술 조사
+
+- [실시간 혼잡도 API 조사 및 비교](docs/research/실시간-혼잡도-API-조사.md)
