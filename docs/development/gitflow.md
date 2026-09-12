@@ -169,7 +169,7 @@ git push
 
 ### 8. Pull Request 생성과 병합
 
-Yeobaek에서는 Pull Request를 만들기 위해 GitHub Issue를 먼저 만들 필요가 없다. 관련 Issue가 이미 있거나 사용자가 Issue 생성을 요청한 경우에만 연결한다.
+Yeobaek에서는 Pull Request를 만들기 위해 GitHub Issue를 먼저 만들 필요가 없다. 관련 Issue가 이미 있거나 사용자가 Issue 생성을 요청한 경우에만 연결한다. Issue가 없다면 PR의 `Related Issues` 항목에는 `-` 한 줄만 적고 `없음` 등의 설명은 덧붙이지 않는다.
 
 Pull Request에는 다음 내용을 작성한다.
 
