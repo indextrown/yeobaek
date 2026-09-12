@@ -44,6 +44,7 @@
 - UI 이벤트는 RxCocoa의 `ControlEvent`, 화면 출력은 `Driver` 또는 `Signal`을 우선 검토한다.
 - API 응답 DTO를 Feature에 직접 노출하지 않는다. Data에서 Domain Entity로 변환한다.
 - API 키를 Swift 코드에 직접 작성하지 않는다. xcconfig와 Info.plist 치환을 거쳐 `AppConfiguration`으로 읽는다.
+- GitHub Issue는 선택 사항이며 브랜치 생성이나 Pull Request의 필수 조건이 아니다. 사용자가 요청하지 않으면 Issue를 만들지 않고 작업 브랜치에서 바로 Pull Request를 생성한다.
 - GRDB는 선택된 로컬 DB 기술이지만 아직 실제 패키지, 스키마, 마이그레이션이 연결되지 않았다. 도입 전까지 현재 구현처럼 설명하지 않는다.
 - 매개변수가 있는 Swift 함수와 생성자는 여는 괄호 뒤에서 줄을 바꾸고 매개변수를 한 줄씩 작성한다.
 - 매개변수가 있는 함수와 생성자에는 역할과 각 매개변수를 설명하는 한국어 `///` 문서화 주석을 작성한다.
