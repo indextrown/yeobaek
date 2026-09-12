@@ -21,6 +21,7 @@
 | 앱 시작·지도 전환 | [`app-startup-flow.md`](docs/architecture/app-startup-flow.md) | 세션 생성 위치, 기본 지도, 루트 화면 조립 |
 | Domain·Data | [`architecture-overview.md`](docs/architecture/architecture-overview.md), [`mvvm-clean-architecture-rxswift.md`](docs/architecture/mvvm-clean-architecture-rxswift.md) | Entity, DTO, Repository protocol과 구현의 경계 |
 | RxSwift·RxCocoa | [`rxswift-guide.md`](docs/development/rxswift-guide.md) | Observable, Relay, Driver, Signal과 UI 바인딩 기준 |
+| Git 브랜치·커밋·PR | [`gitflow.md`](docs/development/gitflow.md) | 기본 Git 명령어, 브랜치 이름, stage, 커밋, push와 PR 순서 |
 | Tuist 모듈 | [`static-and-dynamic-frameworks.md`](docs/architecture/static-and-dynamic-frameworks.md) | static/dynamic 선택과 앱 타깃의 임베딩 책임 |
 | Scheme·Preview·xcconfig | [`xcode-target-scheme-bundle-preview.md`](docs/development/xcode-target-scheme-bundle-preview.md) | 실행 호스트, Bundle, API 키 주입, 지원 destination |
 | 서울시 API | [`실시간-혼잡도-API-조사.md`](docs/research/실시간-혼잡도-API-조사.md) | 응답 범위, 모델링 후보, 아직 확정되지 않은 사항 |
