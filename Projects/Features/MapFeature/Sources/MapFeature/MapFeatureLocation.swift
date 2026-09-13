@@ -63,6 +63,37 @@ public final class CoreMapLocationProvider: NSObject, MapLocationProviding, CLLo
         Self.authorization(from: manager.authorizationStatus)
     }
 
+    /// 최근 30초 이내의 유효한 위치가 있으면 즉시 사용할 좌표를 반환합니다.
+    ///
+    /// - Returns: 최근 좌표이며, 권한이 없거나 위치가 오래됐으면 `nil`입니다.
+    private func latestLocation() -> MapFeatureCoordinate? {
+        guard authorizationStatus() == .authorized,
+              let location = manager.location else {
+            return nil
+        }
+        return Self.usableCoordinate(from: location)
+    }
+
+    /// 오래되거나 유효하지 않은 측정을 제외하고 대략적인 위치도 지도 이동에 사용합니다.
+    ///
+    /// - Parameters:
+    ///   - location: Core Location이 전달한 위치 측정값입니다.
+    ///   - date: 위치의 유효 기간을 판단할 현재 시각입니다.
+    /// - Returns: 최근 30초 이내의 유효 좌표이며, 사용할 수 없으면 `nil`입니다.
+    nonisolated static func usableCoordinate(
+        from location: CLLocation,
+        at date: Date = Date()
+    ) -> MapFeatureCoordinate? {
+        guard (0...30).contains(date.timeIntervalSince(location.timestamp)),
+              location.horizontalAccuracy.isFinite,
+              location.horizontalAccuracy >= 0 else { return nil }
+        let coordinate = MapFeatureCoordinate(
+            latitude: location.coordinate.latitude,
+            longitude: location.coordinate.longitude
+        )
+        return coordinate.isValid ? coordinate : nil
+    }
+
     public func requestAuthorization() async throws -> MapFeatureAuthorization {
         try Task.checkCancellation()
         if authorizationStatus() != .notDetermined { return authorizationStatus() }
@@ -82,6 +113,7 @@ public final class CoreMapLocationProvider: NSObject, MapLocationProviding, CLLo
 
     public func requestLocation() async throws -> MapFeatureCoordinate {
         try Task.checkCancellation()
+        if let coordinate = latestLocation() { return coordinate }
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in
                 guard !Task.isCancelled else {
@@ -89,7 +121,7 @@ public final class CoreMapLocationProvider: NSObject, MapLocationProviding, CLLo
                     return
                 }
                 locationContinuation = continuation
-                manager.requestLocation()
+                manager.startUpdatingLocation()
             }
         } onCancel: {
             Task { @MainActor [weak self] in self?.cancel() }
@@ -139,16 +171,9 @@ public final class CoreMapLocationProvider: NSObject, MapLocationProviding, CLLo
         _ manager: CLLocationManager,
         didUpdateLocations locations: [CLLocation]
     ) {
-        guard let coordinate = locations.last?.coordinate else {
-            Task { @MainActor [weak self] in
-                self?.finishLocation(.failure(MapFeatureLocationError.unavailable))
-            }
-            return
-        }
-        let featureCoordinate = MapFeatureCoordinate(
-            latitude: coordinate.latitude,
-            longitude: coordinate.longitude
-        )
+        guard let featureCoordinate = locations.reversed()
+            .compactMap({ Self.usableCoordinate(from: $0) })
+            .first else { return }
         Task { @MainActor [weak self] in
             self?.finishLocation(.success(featureCoordinate))
         }
@@ -163,6 +188,8 @@ public final class CoreMapLocationProvider: NSObject, MapLocationProviding, CLLo
         _ manager: CLLocationManager,
         didFailWithError error: Error
     ) {
+        if let locationError = error as? CLError,
+           locationError.code == .locationUnknown { return }
         let normalizedError: MapFeatureLocationError
         if let locationError = error as? CLError,
            locationError.code == .denied {
@@ -196,8 +223,9 @@ public final class CoreMapLocationProvider: NSObject, MapLocationProviding, CLLo
     private func finishLocation(
         _ result: Result<MapFeatureCoordinate, Error>
     ) {
-        let continuation = locationContinuation
+        guard let continuation = locationContinuation else { return }
         locationContinuation = nil
-        continuation?.resume(with: result)
+        manager.stopUpdatingLocation()
+        continuation.resume(with: result)
     }
 }
