@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="tech-spec-source" content="tech-spec.md">
+  <meta name="tech-spec-sha256" content="247e61a258af13758eaebd3aa9a1dc6290a791d2f52f29c675a7afff24066ccd">
+  <title>UIKit Component의 SwiftUI 연결</title>
+  <style>:root {
+  color-scheme: light;
+  --background: #f5f7fb;
+  --surface: #ffffff;
+  --text: #20242c;
+  --muted: #687083;
+  --line: #e2e6ef;
+  --accent: #315efb;
+  --code: #f0f3f9;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 17px;
+  line-height: 1.72;
+  word-break: keep-all;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 200px;
+  gap: 40px;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 64px 32px 96px;
+}
+article {
+  min-width: 0;
+  padding: 56px 64px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  box-shadow: 0 18px 45px rgba(28, 39, 65, 0.06);
+}
+h1, h2, h3, h4, h5, h6 {
+  margin: 2em 0 0.65em;
+  line-height: 1.28;
+  letter-spacing: -0.025em;
+}
+h1 { margin-top: 0; font-size: 2.3rem; }
+h2 { padding-top: 0.3em; font-size: 1.55rem; border-top: 1px solid var(--line); }
+h3 { font-size: 1.2rem; }
+p, ul, ol, table, pre, blockquote { margin: 0.8em 0 1.2em; }
+ul, ol { padding-left: 1.5em; }
+li + li { margin-top: 0.35em; }
+a { color: var(--accent); text-underline-offset: 0.18em; }
+code {
+  padding: 0.14em 0.35em;
+  background: var(--code);
+  border-radius: 5px;
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 0.9em;
+}
+p code, li code, th code, td code { overflow-wrap: anywhere; }
+pre {
+  overflow-x: auto;
+  padding: 18px 20px;
+  background: #171b26;
+  color: #f7f8fb;
+  border-radius: 12px;
+  line-height: 1.55;
+}
+pre code { padding: 0; background: transparent; color: inherit; }
+pre code .syntax-keyword { color: #ff7ab2; }
+pre code .syntax-string { color: #ffb18c; }
+pre code .syntax-comment { color: #9aa7b7; }
+pre code .syntax-number { color: #e5d18e; }
+pre code .syntax-attribute { color: #d6a9ff; }
+pre code .syntax-type { color: #78dce8; }
+pre code .syntax-function { color: #b5df96; }
+blockquote {
+  padding: 0.15em 1.1em;
+  color: var(--muted);
+  border-left: 4px solid var(--accent);
+}
+table { width: 100%; border-collapse: collapse; font-size: 0.95em; }
+th, td { padding: 11px 13px; text-align: left; vertical-align: top; border: 1px solid var(--line); overflow-wrap: anywhere; }
+th { background: var(--code); }
+.metadata {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 24px;
+  margin: -0.25em 0 2.5em;
+  padding: 18px 20px;
+  background: var(--code);
+  border-radius: 12px;
+}
+.metadata div { min-width: 0; }
+.metadata dt { color: var(--muted); font-size: 0.78rem; font-weight: 700; }
+.metadata dd { margin: 2px 0 0; overflow-wrap: anywhere; }
+nav { position: sticky; top: 32px; align-self: start; }
+nav strong { display: block; margin-bottom: 10px; font-size: 0.82rem; color: var(--muted); }
+nav ol { margin: 0; padding: 0; list-style: none; font-size: 0.9rem; }
+nav li + li { margin-top: 8px; }
+nav a { color: var(--muted); text-decoration: none; }
+nav a:hover { color: var(--accent); }
+hr { margin: 2em 0; border: 0; border-top: 1px solid var(--line); }
+@media (max-width: 1100px) {
+  .layout { display: block; padding: 24px 16px 56px; }
+  article { padding: 36px 24px; border-radius: 14px; }
+  nav { display: none; }
+}
+@media (max-width: 520px) {
+  body { font-size: 16px; }
+  h1 { font-size: 1.85rem; }
+  .metadata { grid-template-columns: 1fr; }
+}</style>
+</head>
+<body>
+  <main class="layout">
+    <article>
+      <dl class="metadata"><div><dt>상태</dt><dd>초안</dd></div><div><dt>마지막 수정</dt><dd>2026-09-13</dd></div></dl>
+      <h1 id="uikit-component의-swiftui-연결">UIKit Component의 SwiftUI 연결</h1>
+<h2 id="요약">요약</h2>
+<p>UIKit으로 작성한 UI를 UIKit과 SwiftUI에서 함께 사용할 수 있도록 <code>Projects/Shared/Component</code> 모듈을 제안해요. 개발자는 UIKit 뷰의 생성과 상태 반영을 <code>Component</code>에 정의하고, SwiftUI에서 사용할 때 해당 컴포넌트에 <code>View</code>를 추가 채택해요. 첫 버전은 뷰 생성과 단방향 상태 갱신에 집중하고, 컬렉션뷰 전용 조건은 포함하지 않아요.</p>
+<p>이 문서는 구현 전 초안이에요. 아래 인터페이스와 예시는 아직 여백의 기능 코드로 구현하거나 빌드한 결과가 아니에요.</p>
+<h2 id="배경">배경</h2>
+<p>여백은 UIKit + RxSwift + MVVM을 제품 Feature의 기본 방식으로 사용해요. <code>MapFeature</code>만 SwiftUI로 구현하고, App과 Preview에서는 UIKit 화면을 SwiftUI에 연결하는 래퍼도 사용해요.</p>
+<p>현재 <code>Projects/Shared/Core/Sources/Core/UIKit/UIKitRepresentableContainer.swift</code>에는 UIView와 UIViewController를 감싸는 클로저 기반 래퍼가 있어요. 이 도구는 개별 화면 연결에 사용할 수 있지만, 재사용할 UI의 생성과 갱신 규칙을 하나의 컴포넌트 타입으로 정의하지는 않아요.</p>
+<p>사용자가 지정한 하루한컷 프로젝트에서 다음 구현을 확인했어요.</p>
+<table><thead><tr><th>참고 코드</th><th>확인한 역할</th></tr></thead><tbody><tr><td><code>Projects/Shared/CollectionViewAdapter/Sources/Collection/5. Component.swift</code></td><td><code>Content: UIView</code>, <code>createContent()</code>, <code>render(context:content:)</code>로 생성과 갱신을 분리해요.</td></tr><tr><td><code>Projects/Shared/CollectionViewAdapter/Sources/Collection/SwiftUI/25. Component+SwiftUI.swift</code></td><td><code>Component where Self: View</code>에 기본 <code>body</code>를 제공하고 UIViewRepresentable로 연결해요.</td></tr><tr><td><code>Projects/Shared/CollectionViewAdapter/Sources/Collection/4. ComponentContext.swift</code></td><td>컬렉션 위치 정보와 렌더링 작업의 취소 수명을 함께 관리해요.</td></tr></tbody></table>
+<p>하루한컷의 <code>Component</code>는 컬렉션 레이아웃을 위한 추정 높이와 Diffable Data Source를 위한 <code>Item: Identifiable &amp; Equatable</code>도 요구해요. 여백에서는 이 조건을 가져오지 않고, UIKit UI를 선언적인 값으로 표현하고 갱신하는 개념만 활용하려고 해요.</p>
+<h2 id="목표">목표</h2>
+<ul><li>같은 UIKit UI를 UIKit 화면과 SwiftUI 화면에서 사용할 수 있어야 해요.</li><li>개발자는 컴포넌트에 <code>View</code>를 추가 채택하는 것만으로 SwiftUI 문법과 modifier를 사용할 수 있어야 해요.</li><li>SwiftUI에서 전달한 최신 상태가 기존 UIKit 뷰에 반영되어야 해요.</li><li>컴포넌트마다 UIViewRepresentable 코드를 반복 작성하지 않아도 되어야 해요.</li><li>UI를 만들기 위해 컬렉션뷰, 셀 식별자 또는 비교 가능한 Item을 정의할 필요가 없어야 해요.</li><li>기존 지도 Feature와 Core의 래퍼를 바꾸지 않고 독립 Demo에서 설계를 확인할 수 있어야 해요.</li></ul>
+<h2 id="목표가-아닌-것">목표가 아닌 것</h2>
+<ul><li>UICollectionView, Diffable Data Source, 셀 재사용과 Compositional Layout을 추상화하지 않아요.</li><li>기존 UIView 클래스에 <code>View</code>만 붙이면 자동 변환되는 기능은 만들지 않아요. UIView의 생성과 갱신을 담당하는 컴포넌트 구조체가 <code>View</code>를 채택해요.</li><li>UIKit 이벤트를 SwiftUI의 상태나 Binding에 자동으로 전달하지 않아요. 이벤트와 Coordinator 설계는 후속 범위예요.</li><li>Rx 구독, 네트워크 요청과 비동기 작업을 렌더링 수명에 자동 연결하지 않아요.</li><li>모든 UIView의 동적 높이와 SwiftUI 애니메이션을 자동 지원하지 않아요.</li><li>UIViewController 래퍼나 기존 지도 화면을 새 모듈로 이전하지 않아요.</li><li>색상, 폰트, 버튼 등 디자인 시스템 전체를 이 모듈에 모으지 않아요.</li></ul>
+<h2 id="계획">계획</h2>
+<h3 id="모듈과-책임">모듈과 책임</h3>
+<p>다음 구조를 제안해요. 파일과 타깃은 기능 구현을 승인한 뒤 만들어요.</p>
+<pre><code class="language-text">Projects/Shared/Component/
+├── Project.swift
+├── Sources/Component/
+│   ├── Component.swift
+│   ├── ComponentRepresentable.swift
+│   └── Component+SwiftUI.swift
+└── Demo/
+    └── ComponentDemoApp.swift</code></pre>
+<p><code>Component</code>는 UIKit과 SwiftUI만 사용하는 독립 framework로 구성해요. Core, Domain, Data, ThirdParty와 RxSwift는 의존하지 않아요. <code>ComponentDemo</code> 실행 타깃만 새 framework를 의존하고, 기존 제품 Feature에는 이번 단계에서 의존성을 추가하지 않아요.</p>
+<table><thead><tr><th>구성</th><th>제안하는 책임</th></tr></thead><tbody><tr><td><code>Component</code></td><td>UIKit 뷰의 구체 타입, 생성과 최신 상태 반영을 정의해요.</td></tr><tr><td><code>ComponentRepresentable&lt;C&gt;</code></td><td>SwiftUI의 생성과 갱신 호출을 컴포넌트에 전달해요. 모듈 내부 구현으로 숨겨요.</td></tr><tr><td><code>Component where Self: View</code></td><td>컴포넌트를 Representable로 감싸는 기본 <code>body</code>를 제공해요.</td></tr><tr><td>구체 컴포넌트</td><td><code>count</code>, <code>title</code> 등 표시할 값을 보관하고 UIKit 뷰에 반영해요.</td></tr><tr><td><code>ComponentDemo</code></td><td>같은 컴포넌트의 UIKit 사용과 SwiftUI 상태 갱신을 확인해요.</td></tr></tbody></table>
+<p>Core의 기존 래퍼는 클로저로 개별 UI를 연결하는 용도로 유지해요. 새 모듈은 컴포넌트 타입의 계약을 제공해요. 첫 단계에서는 두 도구를 통합하려고 Core의 책임이나 의존 방향을 변경하지 않아요.</p>
+<h3 id="생성과-갱신-계약">생성과 갱신 계약</h3>
+<p>컴포넌트는 공통 Item을 요구하지 않아요. 상태를 일반 프로퍼티로 보관하고, UIKit을 만지는 메서드에만 <code>@MainActor</code>를 지정해요. SwiftUI 브리지 자체는 UI 어댑터이므로 메인 액터에서 동작하도록 해요.</p>
+<pre><code class="language-swift"><span class="syntax-keyword">import</span> <span class="syntax-type">UIKit</span>
+
+<span class="syntax-comment">/// UIKit 뷰의 생성과 상태 반영을 정의하는 UI 단위입니다.</span>
+<span class="syntax-keyword">public</span> <span class="syntax-keyword">protocol</span> <span class="syntax-type">Component</span> {
+    <span class="syntax-keyword">associatedtype</span> <span class="syntax-type">Content</span>: <span class="syntax-type">UIView</span>
+
+    <span class="syntax-comment">/// 상태를 표시할 UIKit 뷰를 생성합니다.</span>
+    <span class="syntax-comment">/// - Returns: 새로 생성한 UIKit 뷰입니다.</span>
+    <span class="syntax-attribute">@MainActor</span>
+    <span class="syntax-keyword">func</span> <span class="syntax-function">createContent</span>() -&gt; <span class="syntax-type">Content</span>
+
+    <span class="syntax-comment">/// 기존 UIKit 뷰에 현재 상태를 반영합니다.</span>
+    <span class="syntax-comment">/// - Parameter content: 상태를 갱신할 UIKit 뷰입니다.</span>
+    <span class="syntax-attribute">@MainActor</span>
+    <span class="syntax-keyword">func</span> <span class="syntax-function">render</span>(
+        content: <span class="syntax-type">Content</span>
+    )
+}</code></pre>
+<p>하루한컷의 <code>CompositionalLayoutSizeable</code>, <code>estimatedHeight</code>, <code>Item</code> 제약은 제거해요. 첫 계약에서는 <code>ComponentContext</code>도 요구하지 않아요. 다만 렌더링 작업 취소는 컬렉션 전용 개념이 아니므로, 이벤트나 비동기 작업을 지원하는 단계에서 별도의 범용 수명 관리로 설계해요.</p>
+<h3 id="swiftui-연결-흐름">SwiftUI 연결 흐름</h3>
+<p>개발자가 <code>extension CountComponent: View {}</code>를 선언하면, 다음 조건부 확장이 기본 <code>body</code>를 제공하도록 해요. 호출부에서 <code>AnyView</code>를 사용하거나 UIKit 뷰를 미리 만들어 보관하지 않아요.</p>
+<pre><code class="language-swift"><span class="syntax-keyword">import</span> <span class="syntax-type">SwiftUI</span>
+
+<span class="syntax-keyword">public</span> <span class="syntax-keyword">extension</span> <span class="syntax-type">Component</span> <span class="syntax-keyword">where</span> <span class="syntax-keyword">Self</span>: <span class="syntax-type">View</span> {
+    <span class="syntax-comment">/// UIKit 컴포넌트를 표시하는 기본 SwiftUI 표현입니다.</span>
+    <span class="syntax-attribute">@MainActor</span>
+    <span class="syntax-keyword">var</span> body: <span class="syntax-keyword">some</span> <span class="syntax-type">View</span> {
+        <span class="syntax-type">ComponentRepresentable</span>(component: <span class="syntax-keyword">self</span>)
+    }
+}</code></pre>
+<p>위 코드의 <code>ComponentRepresentable</code>은 구현할 내부 브리지를 가리켜요. 브리지는 다음 순서로 동작하도록 해요.</p>
+<ol><li>SwiftUI가 <code>makeUIView</code>를 호출하면 <code>createContent()</code>로 UIKit 뷰를 만들어요.</li><li>브리지가 <code>render(content:)</code>를 호출해 초기 상태를 반영해요.</li><li>부모의 상태가 바뀌면 SwiftUI가 최신 컴포넌트 값으로 <code>updateUIView</code>를 호출해요.</li><li>브리지는 기존 UIKit 뷰에 <code>render(content:)</code>를 호출해요. 갱신할 때마다 뷰를 다시 만들지 않아요.</li><li>SwiftUI가 뷰를 제거하면 뷰의 수명이 끝나요. 다시 삽입하거나 정체성을 바꾸면 새 뷰를 만들 수 있어요.</li></ol>
+<p>뷰 생성과 갱신은 SwiftUI의 <a href="https://developer.apple.com/documentation/swiftui/uiviewrepresentable">UIViewRepresentable 계약</a>을 따라요. <code>createContent()</code>를 앱 실행 중 한 번만 호출한다고 보장하지 않아요. <code>render</code> 호출 횟수도 특정 값으로 가정하지 않아요.</p>
+<h3 id="개발자-사용-예시">개발자 사용 예시</h3>
+<p>다음 코드는 사용 형태를 설명하기 위한 예시예요. <code>UILabel</code>은 기존 UIKit 뷰이고, <code>CountComponent</code>는 이 뷰에 표시할 값을 보관해요.</p>
+<pre><code class="language-swift"><span class="syntax-keyword">import</span> <span class="syntax-type">Component</span>
+<span class="syntax-keyword">import</span> <span class="syntax-type">SwiftUI</span>
+<span class="syntax-keyword">import</span> <span class="syntax-type">UIKit</span>
+
+<span class="syntax-keyword">struct</span> <span class="syntax-type">CountComponent</span>: <span class="syntax-type">Component</span> {
+    <span class="syntax-keyword">let</span> count: <span class="syntax-type">Int</span>
+
+    <span class="syntax-comment">/// 표시할 숫자를 저장합니다.</span>
+    <span class="syntax-comment">/// - Parameter count: 화면에 표시할 현재 값입니다.</span>
+    <span class="syntax-keyword">init</span>(
+        count: <span class="syntax-type">Int</span>
+    ) {
+        <span class="syntax-keyword">self</span>.count = count
+    }
+
+    <span class="syntax-comment">/// 숫자를 표시할 UIKit 라벨을 생성합니다.</span>
+    <span class="syntax-comment">/// - Returns: 기본 스타일을 설정한 라벨입니다.</span>
+    <span class="syntax-attribute">@MainActor</span>
+    <span class="syntax-keyword">func</span> <span class="syntax-function">createContent</span>() -&gt; <span class="syntax-type">UILabel</span> {
+        <span class="syntax-keyword">let</span> label = <span class="syntax-type">UILabel</span>()
+        label.font = .<span class="syntax-function">preferredFont</span>(forTextStyle: .title2)
+        label.adjustsFontForContentSizeCategory = <span class="syntax-keyword">true</span>
+        label.textAlignment = .center
+        <span class="syntax-keyword">return</span> label
+    }
+
+    <span class="syntax-comment">/// 현재 숫자를 기존 라벨에 반영합니다.</span>
+    <span class="syntax-comment">/// - Parameter content: 숫자를 표시할 라벨입니다.</span>
+    <span class="syntax-attribute">@MainActor</span>
+    <span class="syntax-keyword">func</span> <span class="syntax-function">render</span>(
+        content: <span class="syntax-type">UILabel</span>
+    ) {
+        content.text = <span class="syntax-string">&quot;현재 값: \(count)&quot;</span>
+    }
+}
+
+<span class="syntax-keyword">extension</span> <span class="syntax-type">CountComponent</span>: <span class="syntax-type">View</span> {}
+
+<span class="syntax-keyword">struct</span> <span class="syntax-type">ComponentDemoView</span>: <span class="syntax-type">View</span> {
+    <span class="syntax-attribute">@State</span> <span class="syntax-keyword">private</span> <span class="syntax-keyword">var</span> count = <span class="syntax-number">0</span>
+
+    <span class="syntax-keyword">var</span> body: <span class="syntax-keyword">some</span> <span class="syntax-type">View</span> {
+        <span class="syntax-type">VStack</span>(spacing: <span class="syntax-number">16</span>) {
+            <span class="syntax-type">CountComponent</span>(count: count)
+                .<span class="syntax-function">frame</span>(height: <span class="syntax-number">44</span>)
+
+            <span class="syntax-type">Button</span>(<span class="syntax-string">&quot;증가&quot;</span>) {
+                count += <span class="syntax-number">1</span>
+            }
+        }
+        .<span class="syntax-function">padding</span>()
+    }
+}</code></pre>
+<p>예제 버튼은 SwiftUI 버튼이에요. UIKit 내부 이벤트의 역방향 전달까지 구현했다는 의미는 아니에요. 높이 <code>44</code>는 예제의 명시적인 크기이고, 모든 컴포넌트가 따라야 하는 기본 높이는 아니에요.</p>
+<p>UIKit UIViewController 내부에서는 같은 컴포넌트로 뷰를 만들고 갱신해요. 생성한 라벨의 배치와 제약 조건은 해당 화면이 관리해요.</p>
+<pre><code class="language-swift"><span class="syntax-keyword">let</span> component = <span class="syntax-type">CountComponent</span>(count: <span class="syntax-number">0</span>)
+<span class="syntax-keyword">let</span> label = component.<span class="syntax-function">createContent</span>()
+component.<span class="syntax-function">render</span>(content: label)
+
+<span class="syntax-comment">// 기존 라벨에 새로운 값을 반영해요.</span>
+<span class="syntax-type">CountComponent</span>(count: <span class="syntax-number">1</span>).<span class="syntax-function">render</span>(content: label)</code></pre>
+<h3 id="수명과-레이아웃-기준">수명과 레이아웃 기준</h3>
+<ul><li><code>createContent()</code>에서 하위 뷰와 고정 제약 조건을 설정해요. <code>render</code>에서는 최신 표시 상태만 반영해요.</li><li>같은 값으로 <code>render</code>를 반복해도 하위 뷰, 이벤트 연결과 구독이 늘어나지 않아야 해요.</li><li><code>render</code>에서 SwiftUI의 Binding을 다시 변경하거나 외부 상태를 발행하지 않아요. 화면 갱신의 순환을 방지해요.</li><li>UIKit 뷰가 보관한 콜백이나 Rx 구독의 자동 정리는 첫 버전에서 보장하지 않아요. 외부 작업이 필요한 컴포넌트는 후속 수명 관리 설계 이후에 적용해요.</li><li>Demo는 명시적인 SwiftUI 크기를 사용해요. 여러 줄 텍스트와 임의 UIView의 동적 높이는 별도의 <code>sizeThatFits</code> 및 Auto Layout 계약이 필요해요.</li><li>SwiftUI가 관리하는 최상위 UIKit 뷰의 <code>frame</code>, <code>bounds</code>, <code>center</code>, <code>transform</code>을 컴포넌트가 직접 변경하지 않아요. <a href="https://developer.apple.com/documentation/swiftui/uiviewrepresentable">Apple의 레이아웃 주의 사항</a>을 따라요.</li></ul>
+<h3 id="적용과-확인-순서">적용과 확인 순서</h3>
+<p>구현을 승인하면 모듈과 독립 Demo부터 추가해요. 기존 Mapbox, MapKit, App 세션과 Core의 UIViewController 래퍼는 유지해요. 새로운 모듈의 책임과 의존 방향은 <code>docs/architecture/architecture-overview.md</code>에 반영하고, Demo 사용법은 기존 문서 체계 안에 안내해요.</p>
+<p>구현 단계에서 확인할 항목은 다음과 같아요. 이번 테크 스펙 작성에서는 기능 빌드와 테스트를 실행하지 않아요.</p>
+<ul><li>같은 UIKit 뷰 인스턴스에 새 컴포넌트 값이 반영되는지 확인해요.</li><li>SwiftUI 부모의 상태 변경이 UILabel의 문구에 반영되는지 확인해요.</li><li>같은 값으로 여러 번 갱신해도 하위 뷰가 늘어나지 않는지 확인해요.</li><li>화면 제거 후 UIKit 뷰가 해제되고, 재삽입 시 최신 상태로 생성되는지 확인해요.</li><li>Demo가 Core, Domain, Data 또는 제품 Feature 없이 실행되는지 확인해요.</li><li>Dynamic Type과 접근성에서 예제의 숫자를 읽을 수 있는지 확인해요. 고정 높이 예제의 제약도 함께 확인해요.</li></ul>
+<h2 id="고려-사항">고려 사항</h2>
+<ul><li><strong>Framework 타입:</strong> 독립 모듈과 Demo 구성은 제안했지만 static/dynamic은 아직 합의하지 않았어요. 기존 Shared 모듈의 dynamic 구성과 맞출지, 실제 링크 조건을 달리할지 구현 승인 전에 사용자와 확정해요.</li><li><strong>자동 크기 계산:</strong> intrinsic content size가 없는 UIView나 여러 줄 텍스트는 최소 래퍼만으로 원하는 높이를 보장하지 못해요. 첫 버전은 명시적인 크기 사용으로 제한하고, <a href="https://developer.apple.com/documentation/swiftui/uiviewrepresentable/sizethatfits(_:uiview:context:">sizeThatFits</a>) 지원은 별도 범위로 합의해요.</li><li><strong>이벤트와 수명:</strong> UIKit 버튼, delegate, Rx 구독까지 첫 버전에 넣으려면 최신 콜백 교체와 해제 시점을 먼저 설계해야 해요. 현재 초안은 이를 제외해 범위를 작게 유지해요.</li><li><strong>이름과 공개 계약:</strong> 모듈과 프로토콜 모두 <code>Component</code>를 사용하는 안이에요. Demo를 별도 모듈에서 컴파일해 <code>import Component</code>와 기본 <code>body</code> 접근이 가능한지 구현 단계에서 확인해요.</li></ul>
+<h2 id="마일스톤">마일스톤</h2>
+<table><thead><tr><th>단계</th><th>완료 조건</th></tr></thead><tbody><tr><td>설계 확정</td><td>생성·갱신 계약, 첫 버전의 제외 범위, framework 타입과 Demo 구성을 합의해요.</td></tr><tr><td>독립 모듈 구현</td><td>컬렉션 전용 제약 없이 Component와 내부 SwiftUI 브리지를 만들어요.</td></tr><tr><td>Demo와 동작 확인</td><td>UIKit과 SwiftUI에서 같은 컴포넌트를 사용하고, 상태 갱신·재사용·해제를 확인해요.</td></tr><tr><td>문서와 PR 준비</td><td>승인된 구현 및 확인 결과를 기록하고, 모듈 문서와 Demo 사용법을 갱신해요. 커밋·게시 범위는 별도 요청에 따라 진행해요.</td></tr></tbody></table>
+    </article>
+    <nav aria-label="문서 목차"><strong>목차</strong><ol><li class="level-2"><a href="#요약">요약</a></li><li class="level-2"><a href="#배경">배경</a></li><li class="level-2"><a href="#목표">목표</a></li><li class="level-2"><a href="#목표가-아닌-것">목표가 아닌 것</a></li><li class="level-2"><a href="#계획">계획</a></li><li class="level-2"><a href="#고려-사항">고려 사항</a></li><li class="level-2"><a href="#마일스톤">마일스톤</a></li></ol></nav>
+  </main>
+</body>
+</html>

@@ -11,6 +11,7 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             dependencies: [
+                .project(target: "Domain", path: "../../Domain"),
                 .project(target: "Core", path: "../../Shared/Core"),
                 .project(target: "Featcher", path: "../../Shared/Featcher"),
                 .project(target: "RxExtension", path: "../../Shared/RxExtension"),
@@ -42,6 +43,7 @@ let project = Project(
             sources: ["Demo/**"],
             dependencies: [
                 .target(name: "MapBoxFeature"),
+                .project(target: "Data", path: "../../Data"),
             ],
             settings: .settings(
                 base: [

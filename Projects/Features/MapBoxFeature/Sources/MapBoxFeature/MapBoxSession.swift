@@ -1,8 +1,11 @@
 import Foundation
 
-/// 앱 실행 중 Mapbox 카메라와 현재 위치 요청 상태를 유지합니다.
+/// 앱 실행 중 Mapbox 카메라, 현재 위치 요청과 주입된 혼잡도 화면 상태를 유지합니다.
 @MainActor
 public final class MapBoxSession {
+    /// 지도 전환 후에도 조회 결과를 유지할 혼잡도 화면 모델입니다.
+    let crowdViewModel: MapBoxCrowdViewModel?
+
     private var didStartAutomatically = false
     public private(set) var requestCount = 0
     public private(set) var cameraIsCenteredOnCurrentLocation = false
@@ -12,7 +15,14 @@ public final class MapBoxSession {
     )
     private(set) var cameraZoom = MapBoxFeatureLocationPolicy.cameraZoom
     private var currentLocationTarget: MapBoxCoordinate?
-    public init() {}
+    /// 위치 요청 상태와 선택적인 혼잡도 표시 기능을 함께 보관합니다.
+    ///
+    /// - Parameter crowdViewModel: App 또는 Demo에서 조립한 혼잡도 모델입니다. `nil`이면 기존 지도만 표시합니다.
+    public init(
+        crowdViewModel: MapBoxCrowdViewModel? = nil
+    ) {
+        self.crowdViewModel = crowdViewModel
+    }
 
     /// 아직 자동 요청을 기록하지 않았다면 앱 수명에서 한 번만 기록합니다.
     ///

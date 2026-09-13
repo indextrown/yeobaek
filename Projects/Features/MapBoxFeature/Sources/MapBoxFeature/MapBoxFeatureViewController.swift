@@ -1,4 +1,5 @@
 import CoreLocation
+import Domain
 import MapboxMaps
 import RxCocoa
 import RxExtension
@@ -34,6 +35,15 @@ public final class MapBoxFeatureViewController: UIViewController {
         effect: UIBlurEffect(style: .systemMaterial)
     )
 
+    /// 혼잡도 범례와 목업 안내를 지도 위에서 읽을 수 있게 표시합니다.
+    private let crowdBackgroundView = UIVisualEffectView(effect: UIBlurEffect(style: .systemMaterial))
+
+    /// 실제 데이터와 구분되는 목업 안내 또는 혼잡도 조회 상태입니다.
+    private let crowdStatusLabel = UILabel()
+
+    /// 현재 위치를 바꾸지 않고 테스트 영역을 찾아볼 수 있는 별도 버튼입니다.
+    private let showCrowdButton = UIButton(type: .system)
+
     // MARK: - Subscriptions
 
     /// Mapbox 카메라 이벤트 구독의 수명을 관리합니다.
@@ -46,6 +56,12 @@ public final class MapBoxFeatureViewController: UIViewController {
 
     /// 동일한 위치 오류 알림을 중복으로 표시하지 않기 위한 식별자입니다.
     private var presentedAlertID: UUID?
+
+    /// Mapbox 스타일 로드 후 생성하는 혼잡도 표시 객체입니다.
+    private var crowdRenderer: MapBoxCrowdRenderer?
+
+    /// 스타일 로드 전에 도착한 결과도 나중에 표시하기 위해 보관합니다.
+    private var crowdState: MapBoxCrowdViewModel.State?
 
     /// 앱 실행 중 유지할 지도 상태와 Rx ViewModel을 주입해 UIKit 화면을 만듭니다.
     ///
@@ -109,8 +125,158 @@ public final class MapBoxFeatureViewController: UIViewController {
         view.backgroundColor = .systemBackground
         configureMapView()
         configureControls()
+        configureCrowdOverlay()
         bindViewModel()
+        bindCrowdViewModel()
         observeCamera()
+    }
+
+    /// 목업 안내, 혼잡도 범례와 전체 영역 보기 버튼을 구성합니다.
+    private func configureCrowdOverlay() {
+        guard let crowdViewModel = session.crowdViewModel else { return }
+
+        let titleLabel = UILabel()
+        titleLabel.text = crowdViewModel.isMockData ? "목업 혼잡도" : "지역 혼잡도"
+        titleLabel.font = .preferredFont(forTextStyle: .headline)
+        titleLabel.adjustsFontForContentSizeCategory = true
+
+        crowdStatusLabel.font = .preferredFont(forTextStyle: .caption1)
+        crowdStatusLabel.adjustsFontForContentSizeCategory = true
+        crowdStatusLabel.textColor = .secondaryLabel
+        crowdStatusLabel.numberOfLines = 0
+        crowdStatusLabel.accessibilityIdentifier = "mapbox-crowd-status"
+
+        let stack = UIStackView(arrangedSubviews: [titleLabel, crowdStatusLabel])
+        stack.axis = .vertical
+        stack.spacing = 8
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        let groups: [[CongestionLevel]] = [[.relaxed, .normal, .busy], [.crowded, .unknown]]
+        for levels in groups {
+            let row = UIStackView()
+            row.spacing = 10
+            row.alignment = .center
+            row.distribution = .fillEqually
+            for level in levels {
+                let dot = UIView()
+                dot.backgroundColor = MapBoxCrowdStyle.color(for: level)
+                dot.layer.cornerRadius = 4
+                dot.translatesAutoresizingMaskIntoConstraints = false
+                NSLayoutConstraint.activate([
+                    dot.widthAnchor.constraint(equalToConstant: 8),
+                    dot.heightAnchor.constraint(equalToConstant: 8),
+                ])
+                let label = UILabel()
+                label.text = MapBoxCrowdStyle.title(for: level)
+                label.font = .preferredFont(forTextStyle: .caption2)
+                label.adjustsFontForContentSizeCategory = true
+                label.numberOfLines = 0
+                let item = UIStackView(arrangedSubviews: [dot, label])
+                item.spacing = 4
+                item.alignment = .center
+                row.addArrangedSubview(item)
+            }
+            stack.addArrangedSubview(row)
+        }
+
+        showCrowdButton.configuration = .plain()
+        showCrowdButton.setTitle(crowdViewModel.isMockData ? "목업 지역 보기" : "전체 지역 보기", for: .normal)
+        showCrowdButton.isEnabled = false
+        showCrowdButton.accessibilityIdentifier = "mapbox-show-crowd-areas-button"
+        stack.addArrangedSubview(showCrowdButton)
+
+        crowdBackgroundView.translatesAutoresizingMaskIntoConstraints = false
+        crowdBackgroundView.layer.cornerRadius = 18
+        crowdBackgroundView.clipsToBounds = true
+        crowdBackgroundView.contentView.addSubview(stack)
+        view.addSubview(crowdBackgroundView)
+        NSLayoutConstraint.activate([
+            crowdBackgroundView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 16),
+            crowdBackgroundView.bottomAnchor.constraint(equalTo: locationButton.topAnchor, constant: -16),
+            crowdBackgroundView.widthAnchor.constraint(lessThanOrEqualToConstant: 280),
+            crowdBackgroundView.trailingAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
+            stack.leadingAnchor.constraint(equalTo: crowdBackgroundView.contentView.leadingAnchor, constant: 14),
+            stack.trailingAnchor.constraint(equalTo: crowdBackgroundView.contentView.trailingAnchor, constant: -14),
+            stack.topAnchor.constraint(equalTo: crowdBackgroundView.contentView.topAnchor, constant: 12),
+            stack.bottomAnchor.constraint(equalTo: crowdBackgroundView.contentView.bottomAnchor, constant: -8),
+        ])
+
+        showCrowdButton.rx.tap
+            .bind(onNext: { [weak self] in self?.showCrowdAreas() })
+            .disposed(by: disposeBag)
+
+        mapView.mapboxMap.onStyleLoaded
+            .observe { [weak self] _ in
+                Task { @MainActor [weak self] in self?.prepareCrowdRenderer() }
+            }
+            .store(in: &mapboxCancelables)
+        if mapView.mapboxMap.isStyleLoaded {
+            prepareCrowdRenderer()
+        }
+    }
+
+    /// 최초 위치 자동 요청 필터와 분리한 생명주기로 혼잡도 출력을 연결합니다.
+    private func bindCrowdViewModel() {
+        guard let crowdViewModel = session.crowdViewModel else { return }
+        let output = crowdViewModel.transform(input: MapBoxCrowdViewModel.Input(
+            viewDidAppear: rx.viewDidAppear.asObservable(),
+            viewDidDisappear: rx.viewDidDisappear.asObservable()
+        ))
+
+        /// 최신 혼잡도 상태를 재생해 지도 전환 후에도 경계와 색상을 복구합니다.
+        output.state
+            .drive(onNext: { [weak self] state in self?.renderCrowd(state) })
+            .disposed(by: disposeBag)
+    }
+
+    /// 지도 스타일이 준비되면 마지막으로 받은 혼잡도를 표시합니다.
+    private func prepareCrowdRenderer() {
+        if crowdRenderer == nil {
+            crowdRenderer = MapBoxCrowdRenderer(mapView: mapView)
+        }
+        if let crowdState {
+            renderCrowd(crowdState)
+        }
+    }
+
+    /// 조회 상태와 혼잡도 색상을 반영하되 현재 위치와 카메라는 변경하지 않습니다.
+    ///
+    /// - Parameter state: 경계와 장소별 혼잡도를 포함한 최신 화면 상태입니다.
+    private func renderCrowd(
+        _ state: MapBoxCrowdViewModel.State
+    ) {
+        crowdState = state
+        crowdRenderer?.render(areas: state.areas)
+        showCrowdButton.isEnabled = !(crowdRenderer?.coordinates.isEmpty ?? true)
+        let notice = session.crowdViewModel?.isMockData == true
+            ? "테스트용 경계와 혼잡도입니다. 실제 관측값이 아닙니다."
+            : "색상은 지역별 혼잡도를 나타냅니다."
+        if state.isLoading {
+            crowdStatusLabel.text = notice + "\n혼잡도를 불러오는 중입니다."
+        } else if state.unavailableCount > 0 {
+            crowdStatusLabel.text = notice + "\n일부 조회에 실패해 회색으로 표시합니다. 화면을 다시 열면 재시도합니다."
+        } else {
+            crowdStatusLabel.text = notice
+        }
+    }
+
+    /// 사용자가 요청했을 때만 모든 테스트 영역이 보이도록 카메라를 이동합니다.
+    private func showCrowdAreas() {
+        guard let coordinates = crowdRenderer?.coordinates, !coordinates.isEmpty else { return }
+        let padding = UIEdgeInsets(
+            top: view.safeAreaInsets.top + 80,
+            left: 32,
+            bottom: view.safeAreaInsets.bottom + crowdBackgroundView.bounds.height + 150,
+            right: 32
+        )
+        guard let camera = try? mapView.mapboxMap.camera(
+            for: coordinates,
+            camera: CameraOptions(padding: .zero, bearing: 0, pitch: 0),
+            coordinatesPadding: padding,
+            maxZoom: 14,
+            offset: nil
+        ) else { return }
+        mapView.camera.cancelAnimations()
+        mapView.camera.ease(to: camera, duration: 0.35)
     }
 
     /// Mapbox 지도 View를 화면 전체에 배치하고 접근성 정보를 설정합니다.
