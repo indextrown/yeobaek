@@ -45,6 +45,14 @@ UIApplication
 
 지도 제공자를 전환해도 두 Session 인스턴스는 `AppRootView`에 남는다. 화면 내부 상태를 전환할 때마다 새로 시작해야 한다면 Session의 소유 위치와 초기화 시점을 함께 변경해야 한다.
 
+## 현재 위치 이동
+
+`MapBoxFeatureViewController`는 기본 ViewModel을 만들 때 `MapboxPuckLocationProvider`를 주입한다. 이 제공자는 지도 위치 점과 같은 `MapView.location`의 최근 좌표와 `onLocationChange`를 사용한다. 위치 점이 뒤늦게 나타나도 진행 중인 이동 요청에 좌표가 전달되며, 별도의 Core Location 좌표 조회를 기다리지 않는다. `CoreMapboxLocationProvider`는 이 경로에서 권한 확인과 요청만 담당한다.
+
+MapKit의 `CoreMapLocationProvider`는 최근 좌표가 있으면 재사용하고, 없으면 `startUpdatingLocation()`으로 첫 유효한 위치를 받는다. 요청이 끝나거나 취소되면 위치 갱신을 중단한다. 일시적인 `locationUnknown`은 기존 제한 시간 안에서 다음 갱신을 기다린다.
+
+두 제공자는 측정 후 30초가 지난 좌표를 재사용하지 않는다. 음수 정확도 같은 무효 측정은 제외하지만, 사용자가 허용한 대략적인 위치를 500m 같은 임의의 정확도 상한으로 거부하지 않는다. 카메라는 요청이 완료될 때 한 번 이동하며, 지도 위치 점이 계속 갱신된다고 카메라를 계속 따라 움직이지는 않는다.
+
 ## 앱 설정과 Bundle
 
 `YeobaekApp` 타깃은 `Configuration.xcconfig` 값을 Info.plist의 `MBXAccessToken`과 `SeoulAPIKey`로 치환한다. 위치 사용 설명도 App 타깃의 Info.plist에 들어간다.

@@ -51,13 +51,12 @@ public final class MapBoxFeatureViewController: UIViewController {
     ///
     /// - Parameters:
     ///   - session: 자동 요청 여부와 마지막 카메라를 보관하는 앱 수명 상태입니다.
-    ///   - viewModel: 위치 요청과 화면 상태를 관리하는 Rx ViewModel입니다.
+    ///   - viewModel: 주입할 Rx ViewModel이며, nil이면 지도 위치 점과 같은 위치 제공자를 사용합니다.
     public init(
         session: MapBoxSession,
-        viewModel: MapBoxFeatureViewModel = MapBoxFeatureViewModel()
+        viewModel: MapBoxFeatureViewModel? = nil
     ) {
         self.session = session
-        self.viewModel = viewModel
         let cameraOptions = CameraOptions(
             center: CLLocationCoordinate2D(
                 latitude: session.cameraCoordinate.latitude,
@@ -74,6 +73,23 @@ public final class MapBoxFeatureViewController: UIViewController {
                 styleURI: .standard
             )
         )
+        if let viewModel {
+            self.viewModel = viewModel
+        } else {
+#if DEBUG
+            if ProcessInfo.processInfo.environment["UITEST_LOCATION_SCENARIO"] == "success" {
+                self.viewModel = MapBoxFeatureViewModel()
+            } else {
+                self.viewModel = MapBoxFeatureViewModel(
+                    provider: MapboxPuckLocationProvider(mapView: mapView)
+                )
+            }
+#else
+            self.viewModel = MapBoxFeatureViewModel(
+                provider: MapboxPuckLocationProvider(mapView: mapView)
+            )
+#endif
+        }
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -239,7 +255,7 @@ public final class MapBoxFeatureViewController: UIViewController {
         let authorizationMessage = state == .authorizationDenied
             ? "위치 권한이 없어 현재 위치를 확인할 수 없습니다."
             : nil
-        locationButton.isEnabled = !isLoading
+        locationButton.isEnabled = true
         locationButton.setImage(
             isLoading ? nil : UIImage(systemName: "location.fill"),
             for: .normal
