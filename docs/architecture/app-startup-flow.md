@@ -18,7 +18,7 @@ Yeobaek은 SwiftUI App 생명주기를 사용한다. `YeobaekApp`이 `AppRootVie
 | 1 | `YeobaekApp` | `@main` 진입점으로 실행된다. |
 | 2 | `WindowGroup` | 앱 윈도에 `AppRootView`를 생성한다. |
 | 3 | `AppRootView` | 기본 지도 제공자를 `MapKit`으로 설정한다. |
-| 4 | `AppRootView` | `MapFeatureSession`과 `MapBoxSession`을 `@State`로 생성해 화면 갱신 중에도 유지한다. |
+| 4 | `AppRootView` | `MapFeatureSession`과 목업 혼잡도 ViewModel을 주입한 `MapBoxSession`을 `@State`로 생성해 화면 갱신 중에도 유지한다. |
 | 5 | 지도 선택 switch | 선택값에 따라 `MapFeatureView` 또는 `MapBoxFeatureView`를 표시한다. |
 | 6 | 상단 Picker | 사용자가 MapKit과 Mapbox를 바꾸면 같은 루트 안에서 표시할 Feature를 전환한다. |
 
@@ -39,11 +39,19 @@ UIApplication
 | `YeobaekApp` | 앱 진입과 최초 Scene 구성 | SwiftUI App 런타임 |
 | `AppRootView` | 지도 제공자 선택, Feature 전환, Session 보관 | `WindowGroup` |
 | `MapFeatureSession` | MapKit 화면에서 유지해야 하는 상태와 동작 | `AppRootView`의 `@State` |
-| `MapBoxSession` | Mapbox 화면에서 유지해야 하는 상태와 동작 | `AppRootView`의 `@State` |
+| `MapBoxSession` | 마지막 카메라, 자동 위치 요청 여부와 혼잡도 ViewModel 보관 | `AppRootView`의 `@State` |
 | `MapFeatureView` | 유일한 SwiftUI Feature인 MapKit 지도 UI | `AppRootView` |
 | `MapBoxFeatureView` | UIKit + RxSwift 기반 Mapbox 화면을 SwiftUI App 계층에 연결하는 래퍼 | `AppRootView` |
 
 지도 제공자를 전환해도 두 Session 인스턴스는 `AppRootView`에 남는다. 화면 내부 상태를 전환할 때마다 새로 시작해야 한다면 Session의 소유 위치와 초기화 시점을 함께 변경해야 한다.
+
+## 목업 혼잡도 조립
+
+`AppRootView`는 Data 모듈의 `CrowdMockData.areas`와 `MockCrowdRepository`로 `MapBoxCrowdViewModel`을 만들고 `MapBoxSession`에 보관한다. Feature에는 Domain의 `CrowdRepository` 프로토콜과 경계만 전달한다. `isMockData`는 `true`로 지정해 테스트용 경계와 관측값이라는 안내를 표시한다.
+
+혼잡도 조회는 위치 권한과 무관하게 화면 등장 시 시작한다. 화면이 사라지면 진행 중인 조회를 취소하며, 완료된 목업 결과는 Session이 보관한 ViewModel에서 유지한다. 다시 생성된 UIKit 화면은 Driver의 마지막 상태를 구독하고, 지도 스타일이 준비되면 경계를 표시한다. 일부 조회가 실패하면 해당 영역만 회색으로 남기고 다음 화면 등장 때 재시도한다.
+
+혼잡도 결과가 도착해도 현재 위치 카메라를 덮어쓰지 않는다. `목업 지역 보기` 버튼은 사용자의 명시적인 입력으로 전체 경계를 보여주는 별도 지도 조작이다. 기존 자동 위치 요청 횟수와 내 위치 이동 흐름은 유지한다.
 
 ## 현재 위치 이동
 
@@ -66,6 +74,8 @@ Feature framework 자체는 실행 Bundle이 아니다. API 키를 읽을 때는
 `MapFeatureDemo`, `MapBoxFeatureDemo`, `FeatcherDemo`, `RxLabDemo`는 제품 앱과 별개의 실행 타깃이다. Demo Scheme을 선택하면 해당 Demo 앱이 실행 호스트가 되므로 필요한 Info.plist, xcconfig, 권한과 리소스를 Demo 타깃에도 연결해야 한다.
 
 Demo는 Feature를 빠르게 실행하기 위한 개발 도구다. 제품 앱의 전역 상태나 다른 Feature에 의존하지 않고 대상 모듈만으로 실행되는 상태를 유지한다.
+
+`MapBoxFeatureDemo` 실행 타깃은 목업 조립을 위해 Data를 의존한다. Demo 진입점에서 App과 동일한 경계와 Repository를 주입하므로 `MapBoxFeature` Scheme으로 혼잡도 폴리곤과 범례를 독립적으로 확인할 수 있다. 기본 `MapBoxSession()`은 혼잡도 주입 없이 기존 지도만 표시하므로, 목업 Preview는 App 또는 Demo 조립 코드를 사용한다.
 
 ## 아직 시작 흐름에 없는 것
 

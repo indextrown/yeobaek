@@ -17,9 +17,9 @@ Yeobaek은 Tuist로 App, Feature, Domain, Data, Shared를 분리한 iOS 멀티 �
 | --- | --- | --- |
 | `Projects/App` | `@main` 진입점, 루트 화면, 지도 제공자 전환, 앱 설정과 리소스 | 앱 전체에서 한 번만 결정하는 조립과 시작 흐름을 둔다. |
 | `Projects/Features/MapFeature` | SwiftUI + MapKit 기반 지도 화면과 독립 실행 Demo | 프로젝트에서 유일하게 SwiftUI로 구현하는 Feature이며 MapKit 전용 UI와 지도 상호작용을 둔다. |
-| `Projects/Features/MapBoxFeature` | UIKit + RxSwift + MVVM 기반 Mapbox 화면, App 연결용 SwiftUI 래퍼, 독립 실행 Demo | 실제 화면은 UIKit으로 구현하고 ViewModel의 Input/Output을 RxSwift로 연결한다. |
+| `Projects/Features/MapBoxFeature` | UIKit + RxSwift + MVVM 기반 Mapbox 화면, 목업 혼잡도 폴리곤과 범례, App 연결용 SwiftUI 래퍼, 독립 실행 Demo | 위치 조회와 혼잡도 조회를 분리하고 Domain 경계를 Mapbox 표현으로 변환한다. |
 | `Projects/Domain` | 장소, 좌표, 혼잡도 같은 Entity와 Repository protocol | 외부 프레임워크를 모르는 비즈니스 모델과 규칙을 둔다. |
-| `Projects/Data` | DTO, 응답 변환, Repository 구현 | API나 DB의 구체 타입을 Domain Entity로 변환하는 코드를 둔다. |
+| `Projects/Data` | DTO, 응답 변환, Repository 구현, 테스트용 장소 경계와 혼잡도 목업 | API나 DB의 구체 타입을 Domain Entity로 변환하는 코드를 둔다. |
 | `Projects/Shared/Core` | 여러 모듈에서 쓰는 기반 코드, 앱 설정 접근, UIKit-SwiftUI 연결 도구 | 특정 기능에 종속되지 않는 공통 기반 코드를 둔다. |
 | `Projects/Shared/Featcher` | 네트워크 요청 실행을 실험·공유하는 모듈과 Demo·테스트 | 범용 요청 실행과 그 검증을 둔다. 기능별 API 정책은 Data에 둔다. |
 | `Projects/Shared/ThirdParty` | MapboxMaps, RxSwift, RxCocoa, RxRelay 패키지 연결 | 외부 패키지 제품 추가와 재노출을 관리한다. |
@@ -39,7 +39,7 @@ Yeobaek은 Tuist로 App, Feature, Domain, Data, Shared를 분리한 iOS 멀티 �
 App
 ├─ Features
 │  ├─ MapFeature
-│  └─ MapBoxFeature ──> 필요한 Shared 모듈
+│  └─ MapBoxFeature ──> Domain, 필요한 Shared 모듈
 ├─ Data ──────────────> Domain
 ├─ Core ──────────────> Domain
 ├─ Domain
@@ -51,7 +51,15 @@ Shared/RxLab ────────> Shared/ThirdParty
 
 핵심 원칙은 구현 계층이 추상 계층을 바라보는 것이다. `Data`는 `Domain`의 Repository protocol을 구현하고, Feature는 DTO가 아닌 Domain Entity를 사용한다. 외부 패키지는 Domain으로 전파하지 않는다.
 
-현재 App 타깃은 Data, Domain, Core, ThirdParty와 두 지도 Feature를 직접 의존한다. 조립 루트가 단순한 초기 단계라 가능한 구조지만, UseCase와 Repository 조립이 늘어나면 App 전용 DI 구성을 추가해 구체 타입 생성을 한곳으로 모은다.
+현재 App 타깃은 Data, Domain, Core, ThirdParty와 두 지도 Feature를 직접 의존한다. `AppRootView`와 `MapBoxFeatureDemoApp`은 `CrowdMockData.areas`와 `MockCrowdRepository`를 `MapBoxCrowdViewModel`에 주입한다. Demo 실행 타깃만 Data를 추가로 의존하며, MapBoxFeature framework는 Data를 직접 의존하지 않는다. UseCase와 Repository 조립이 늘어나면 App 전용 DI 구성을 추가해 구체 타입 생성을 한곳으로 모은다.
+
+## 목업 혼잡도 표시
+
+- `MapBoxCrowdViewModel`은 `CrowdRepository`로 장소별 정보를 조회하고 `placeID`로 `AreaGeometry`와 연결한다. 위치 요청 ViewModel과 별도의 Input/Output을 사용한다.
+- `MapBoxCrowdRenderer`는 다중 폴리곤과 내부 빈 영역을 보존하고 반투명 채움과 독립된 테두리를 그린다. 조회 실패나 정보 없음은 회색으로 표시한다.
+- `CrowdMockData`의 다섯 영역은 서울 도심에 임의로 배치한 테스트용 경계다. 공식 영역이 아니며 `MOCK` 장소 코드는 실제 API 요청에 사용하지 않는다.
+- 목업 안내와 다섯 단계 범례를 항상 표시한다. 데이터 도착만으로 카메라를 이동하지 않으며, 사용자가 `목업 지역 보기` 버튼을 누르면 전체 영역을 보여준다.
+- 혼잡도는 현재 Mapbox에만 연결됐다. MapKit 폴리곤, 장소 선택 카드, 실제 서울시 API, 최신성 정책과 GRDB는 후속 작업이다.
 
 ## Framework 구성
 

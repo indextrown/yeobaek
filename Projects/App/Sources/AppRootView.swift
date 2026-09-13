@@ -1,3 +1,4 @@
+import Data
 import SwiftUI
 import MapBoxFeature
 import MapFeature
@@ -12,7 +13,13 @@ struct AppRootView: View {
 
     @State private var selectedProvider: MapProvider = .mapKit
     @State private var mapKitSession = MapFeatureSession()
-    @State private var mapboxSession = MapBoxSession()
+    @State private var mapboxSession = MapBoxSession(
+        crowdViewModel: MapBoxCrowdViewModel(
+            areas: CrowdMockData.areas,
+            repository: MockCrowdRepository(),
+            isMockData: true
+        )
+    )
 
     var body: some View {
         ZStack(alignment: .top) {
