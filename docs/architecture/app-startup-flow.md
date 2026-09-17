@@ -16,19 +16,24 @@ Yeobaek은 SwiftUI App 생명주기를 사용한다. `YeobaekApp`이 `AppRootVie
 | 순서 | 실행 위치 | 동작 |
 | ---: | --- | --- |
 | 1 | `YeobaekApp` | `@main` 진입점으로 실행된다. |
-| 2 | `WindowGroup` | 앱 윈도에 `AppRootView`를 생성한다. |
-| 3 | `AppRootView` | 기본 지도 제공자를 `MapKit`으로 설정한다. |
-| 4 | `AppRootView` | `MapFeatureSession`과 목업 혼잡도 ViewModel을 주입한 `MapBoxSession`을 `@State`로 생성해 화면 갱신 중에도 유지한다. |
-| 5 | 지도 선택 switch | 선택값에 따라 `MapFeatureView` 또는 `MapBoxFeatureView`를 표시한다. |
-| 6 | 상단 Picker | 사용자가 MapKit과 Mapbox를 바꾸면 같은 루트 안에서 표시할 Feature를 전환한다. |
+| 2 | `YeobaekApp` | `AppDIContainer`를 `@State`로 한 번만 생성한다. |
+| 3 | `WindowGroup` | 앱 윈도에 컨테이너를 주입한 `AppRootView`를 생성한다. |
+| 4 | `AppRootView` | 기본 지도 제공자를 `MapKit`으로 설정한다. |
+| 5 | `AppDIContainer` | 두 Session을 `lazy var`로 만들어 앱 실행 동안 공유한다. `MapBoxSession`은 목업 혼잡도 ViewModel을 주입받는다. |
+| 6 | 지도 선택 switch | 선택값에 따라 `MapFeatureView` 또는 `MapBoxFeatureView`를 표시한다. |
+| 7 | 상단 Picker | 사용자가 MapKit과 Mapbox를 바꾸면 같은 루트 안에서 표시할 Feature를 전환한다. |
 
 ```text
 UIApplication
 └─ YeobaekApp
+   ├─ AppDIContainer (@State, 앱 수명 동안 하나)
    └─ WindowGroup
-      └─ AppRootView
-         ├─ MapProvider.mapKit ──> MapFeatureView(MapFeatureSession)
-         ├─ MapProvider.mapbox ──> MapBoxFeatureView(MapBoxSession)
+      └─ AppRootView(container:)
+         ├─ MapProvider.mapKit ──> MapFeatureView(container.mapKitSession)
+         ├─ MapProvider.mapbox ──> MapBoxFeatureView(
+         │                           session: container.mapBoxSession,
+         │                           makeViewController: container.makeMapBoxFeatureViewController
+         │                         )
          └─ Segmented Picker
 ```
 
@@ -36,18 +41,19 @@ UIApplication
 
 | 객체 | 책임 | 생명주기 소유자 |
 | --- | --- | --- |
-| `YeobaekApp` | 앱 진입과 최초 Scene 구성 | SwiftUI App 런타임 |
-| `AppRootView` | 지도 제공자 선택, Feature 전환, Session 보관 | `WindowGroup` |
-| `MapFeatureSession` | MapKit 화면에서 유지해야 하는 상태와 동작 | `AppRootView`의 `@State` |
-| `MapBoxSession` | 마지막 카메라, 자동 위치 요청 여부와 혼잡도 ViewModel 보관 | `AppRootView`의 `@State` |
+| `YeobaekApp` | 앱 진입, 최초 Scene 구성과 컨테이너 생성 | SwiftUI App 런타임 |
+| `AppDIContainer` | Repository, Session, ViewModel과 화면 조립 | `YeobaekApp`의 `@State` |
+| `AppRootView` | 지도 제공자 선택과 Feature 전환 | `WindowGroup` |
+| `MapFeatureSession` | MapKit 화면에서 유지해야 하는 상태와 동작 | `AppDIContainer`의 `lazy var` |
+| `MapBoxSession` | 마지막 카메라, 자동 위치 요청 여부와 혼잡도 ViewModel 보관 | `AppDIContainer`의 `lazy var` |
 | `MapFeatureView` | 유일한 SwiftUI Feature인 MapKit 지도 UI | `AppRootView` |
 | `MapBoxFeatureView` | UIKit + RxSwift 기반 Mapbox 화면을 SwiftUI App 계층에 연결하는 래퍼 | `AppRootView` |
 
-지도 제공자를 전환해도 두 Session 인스턴스는 `AppRootView`에 남는다. 화면 내부 상태를 전환할 때마다 새로 시작해야 한다면 Session의 소유 위치와 초기화 시점을 함께 변경해야 한다.
+지도 제공자를 전환해도 두 Session 인스턴스는 컨테이너에 남는다. 화면 내부 상태를 전환할 때마다 새로 시작해야 한다면 Session의 소유 위치와 초기화 시점을 함께 변경해야 한다. 컨테이너의 객체 생성 방식은 [DI Container 패턴](dicontainer.md)에서 확인한다.
 
 ## 목업 혼잡도 조립
 
-`AppRootView`는 Data 모듈의 `CrowdMockData.areas`와 `MockCrowdRepository`로 `MapBoxCrowdViewModel`을 만들고 `MapBoxSession`에 보관한다. Feature에는 Domain의 `CrowdRepository` 프로토콜과 경계만 전달한다. `isMockData`는 `true`로 지정해 테스트용 경계와 관측값이라는 안내를 표시한다.
+`AppDIContainer`는 Data 모듈의 `CrowdMockData.areas`와 `MockCrowdRepository`로 `MapBoxCrowdViewModel`을 만들고 `MapBoxSession`에 보관한다. Feature에는 Domain의 `CrowdRepository` 프로토콜과 경계만 전달한다. `isMockData`는 `true`로 지정해 테스트용 경계와 관측값이라는 안내를 표시한다.
 
 혼잡도 조회는 위치 권한과 무관하게 화면 등장 시 시작한다. 화면이 사라지면 진행 중인 조회를 취소하며, 완료된 목업 결과는 Session이 보관한 ViewModel에서 유지한다. 다시 생성된 UIKit 화면은 Driver의 마지막 상태를 구독하고, 지도 스타일이 준비되면 경계를 표시한다. 일부 조회가 실패하면 해당 영역만 회색으로 남기고 다음 화면 등장 때 재시도한다.
 
@@ -80,11 +86,12 @@ Demo는 Feature를 빠르게 실행하기 위한 개발 도구다. 제품 앱의
 ## 아직 시작 흐름에 없는 것
 
 - GRDB 데이터베이스 연결과 Migration 실행
-- Repository 구현과 UseCase를 조립하는 App DI Container
+- UseCase 계층과 실제 서울시 API Repository 구현
 - 원격 API 클라이언트의 앱 범위 생명주기 관리
 - 로그인과 사용자 세션 초기화
+- 화면 전환을 담당하는 Coordinator
 
-이 기능을 추가할 때는 `YeobaekApp` 또는 `AppRootView`에서 구체 타입을 계속 직접 만들기보다 App 조립 전용 객체를 두는 방식을 먼저 검토한다.
+이 기능을 추가할 때는 `YeobaekApp`이나 `AppRootView`에서 구체 타입을 직접 만들지 않고 `AppDIContainer`에 추가한다.
 
 ## 변경 후 확인할 것
 

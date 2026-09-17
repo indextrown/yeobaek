@@ -47,7 +47,6 @@ public protocol MapLocationProviding: AnyObject, Sendable {
     func cancel()
 }
 
-@MainActor
 public final class CoreMapLocationProvider: NSObject, MapLocationProviding, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var authorizationContinuation: CheckedContinuation<MapFeatureAuthorization, Error>?

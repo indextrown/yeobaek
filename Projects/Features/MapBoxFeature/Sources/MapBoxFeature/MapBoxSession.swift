@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 public final class MapBoxSession {
     /// 지도 전환 후에도 조회 결과를 유지할 혼잡도 화면 모델입니다.
-    let crowdViewModel: MapBoxCrowdViewModel?
+    let crowdViewModel: (any MapBoxCrowdViewModelProtocol)?
 
     private var didStartAutomatically = false
     public private(set) var requestCount = 0
@@ -15,11 +15,22 @@ public final class MapBoxSession {
     )
     private(set) var cameraZoom = MapBoxFeatureLocationPolicy.cameraZoom
     private var currentLocationTarget: MapBoxCoordinate?
+
+    /// 화면을 새로 만들 때 이어서 표시할 마지막 카메라입니다.
+    ///
+    /// 조립 계층이 개별 좌표와 확대 수준을 따로 읽지 않도록 한 값으로 제공합니다.
+    public var camera: MapBoxCameraSnapshot {
+        MapBoxCameraSnapshot(
+            coordinate: cameraCoordinate,
+            zoom: cameraZoom
+        )
+    }
+
     /// 위치 요청 상태와 선택적인 혼잡도 표시 기능을 함께 보관합니다.
     ///
     /// - Parameter crowdViewModel: App 또는 Demo에서 조립한 혼잡도 모델입니다. `nil`이면 기존 지도만 표시합니다.
     public init(
-        crowdViewModel: MapBoxCrowdViewModel? = nil
+        crowdViewModel: (any MapBoxCrowdViewModelProtocol)? = nil
     ) {
         self.crowdViewModel = crowdViewModel
     }

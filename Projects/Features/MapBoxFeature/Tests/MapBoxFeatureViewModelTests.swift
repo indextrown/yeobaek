@@ -262,7 +262,8 @@ private final class ViewModelHarness {
                 viewDidAppear: viewDidAppear.asObservable(),
                 currentLocationTapped: currentLocationTapped.asObservable(),
                 viewDidDisappear: viewDidDisappear.asObservable()
-            )
+            ),
+            disposeBag: disposeBag
         )
         output.state
             .drive(onNext: { [weak self] state in
@@ -282,7 +283,6 @@ private final class ViewModelHarness {
     }
 }
 
-@MainActor
 private final class RxLocationProvider: MapboxLocationProviding {
     var authorization: MapBoxAuthorization
     private(set) var authorizationRequestCount = 0

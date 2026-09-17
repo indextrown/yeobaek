@@ -29,7 +29,7 @@ final class MapBoxCrowdRenderer {
     ///
     /// - Parameter areas: 장소 코드로 경계와 혼잡도를 연결한 표시 데이터입니다.
     func render(
-        areas: [MapBoxCrowdViewModel.Area]
+        areas: [MapBoxCrowdArea]
     ) {
         var fills: [PolygonAnnotation] = []
         var lines: [PolylineAnnotation] = []
@@ -72,7 +72,6 @@ final class MapBoxCrowdRenderer {
 }
 
 /// 지도와 범례가 동일하게 사용하는 화면 전용 혼잡도 표현입니다.
-@MainActor
 enum MapBoxCrowdStyle {
     /// 혼잡도 단계에 대응하는 지도와 범례 색상을 반환합니다.
     ///
