@@ -1,0 +1,14 @@
+{
+  "kit": "ios-uikit",
+  "files": {
+    "CLAUDE.md": "bb2d9cfe846037a2167a9683e2b6c2ad905312760427f7e564a7f37bbbc28597",
+    "docs/architecture/architecture.md": "8040d6e6dfb4c6854d9471e19caea21fba4151df156b403f25f97757714d7a9d",
+    "docs/architecture/dicontainer.md": "c7d900cfdaa817a9f62f2b82424cf7276f7b86b212ed1bbe5eb5f78234ac4338",
+    "docs/architecture/rxswift-binding-policy.md": "38f3e9ba7c02204f9b39778f4fc097d053c835b04f1fbaccd7b956f36d3e4e69",
+    "docs/architecture/rxswift-input-output.md": "ba670e6a65aac759f1e9fcb03693c75d1b6dbddc1e32b65f2eb1449c0282a07a",
+    "docs/architecture/rxswift.md": "81fcdf4b41b1c211cf4478b6722ef4cdf136071aebe1506c38c7b7287ff2e0d3",
+    "docs/architecture/view-viewmodel-protocols.md": "0a42d236eafca38f4885d4f67fa93710672837c1ea580e7f20d48420dd9f6700",
+    "docs/development/swiftstyle.md": "12b1d91ed1e7c37648f75bc769341978b033dd30f32aaa0277174314689901c0",
+    "docs/development/testing.md": "156d1d542621d0370306b8177b6754ff1458ee06b93ed37aa1b79e5518db6900"
+  }
+}
