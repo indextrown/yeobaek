@@ -167,7 +167,7 @@ private final class PuckLocationHarness {
             viewDidAppear: appear.asObservable(),
             currentLocationTapped: tap.asObservable(),
             viewDidDisappear: disappear.asObservable()
-        ))
+        ), disposeBag: disposeBag)
         output.state.drive(onNext: { [weak self] in self?.states.append($0) })
             .disposed(by: disposeBag)
         output.cameraCommand.emit(onNext: { [weak self] in self?.commands.append($0) })
@@ -177,7 +177,6 @@ private final class PuckLocationHarness {
     }
 }
 
-@MainActor
 private final class AuthorizationOnlyProvider: MapboxLocationProviding {
     let status: MapBoxAuthorization
     private(set) var locationRequestCount = 0

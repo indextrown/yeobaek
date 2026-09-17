@@ -11,7 +11,6 @@ public struct MapFeatureView: View {
     /// - Parameters:
     ///   - session: 앱 실행 중 자동 요청 여부를 보관하는 상태입니다.
     ///   - viewModel: 위치 요청과 화면 상태를 관리하는 ViewModel입니다.
-    @MainActor
     public init(
         session: MapFeatureSession,
         viewModel: MapFeatureViewModel
@@ -33,7 +32,6 @@ public struct MapFeatureView: View {
     /// 앱 수명 자동 실행 상태와 기본 위치 ViewModel로 MapKit 화면을 만듭니다.
     ///
     /// - Parameter session: 앱 실행 중 자동 요청 여부를 보관하는 상태입니다.
-    @MainActor
     public init(
         session: MapFeatureSession
     ) {
@@ -43,7 +41,6 @@ public struct MapFeatureView: View {
         )
     }
 
-    @MainActor
     public init() {
         self.init(session: MapFeatureSession())
     }

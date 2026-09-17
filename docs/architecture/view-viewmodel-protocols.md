@@ -7,23 +7,21 @@ description: ViewType과 ViewModelType의 공통 계약, 화면별 프로토콜,
 
 View는 입력 이벤트와 `render`를, ViewModel은 `transform`을 프로토콜로 공개해요. ViewController가 이 계약에 의존하면 레이아웃을 바꾸거나 테스트용 ViewModel을 주입할 때 화면 연결 코드를 유지할 수 있어요.
 
-> 이 문서는 UIKit·RxSwift를 사용하는 참고 프로젝트의 구조를 일반화한 검토 예시예요. 생성 대상 프로젝트가 같은 구조나 라이브러리를 사용한다는 뜻은 아니에요. 아래 예제는 Swift 5.7 이상 문법을 사용해요. 실제 Swift 언어 모드, 동시성 설정과 RxSwift 채택 여부는 프로젝트에서 확인해요.
+이 프로젝트에 실제로 적용된 상태는 아래와 같아요. 모든 화면에 같은 깊이로 적용하지는 않아요.
 
-## 참고 프로젝트에서 확인한 구조
+| 대상 | 적용 범위 | 판단 근거 |
+| --- | --- | --- |
+| `Core/Presentation/ViewType.swift` | `UIView` 제약과 `render(_:)` | 모든 UIKit 화면이 공유해요. |
+| `Core/Presentation/ViewModelType.swift` | `Input`, `Output`, `transform(input:disposeBag:)` | `@MainActor` 프로토콜이라 채택 타입이 격리를 물려받아요. |
+| `RxLabCounter*` | 화면별 View·ViewModel 프로토콜, `ViewData`, `any` 주입까지 전부 | 상태가 값 세 개로 떨어지고 지도 SDK 결합이 없어요. |
+| `MapBoxScreenView`, `MapBoxFeatureViewController` | 화면별 프로토콜과 `any` 주입 + 카메라 명령 메서드 | 상태는 `MapBoxScreenViewData`로 묶되, 카메라 이동은 `render`로 표현할 수 없어 별도 메서드로 둬요. |
+| `MapFeature` | 적용하지 않음 | SwiftUI 화면이라 `UIView` 제약을 만족할 수 없어요. |
 
-`RTK_SDK_iOS_Sample`의 `MapseaRTKSample/` 아래 파일을 분석했어요. 경로는 참고 프로젝트 기준이며, 생성 대상 프로젝트에서 열 수 있는 링크는 아니에요.
+`ViewType`이 잘 맞는 화면과 그렇지 않은 화면이 있어요. 판단 기준은 다음과 같아요.
 
-| 확인한 파일 | 현재 구현 |
-| --- | --- |
-| `Presentation/Common/ViewType.swift` | `UIView` 제약, `associatedtype ViewData`, `render(_:)`를 정의해요. |
-| `Presentation/Common/ViewModelType.swift` | `Input`·`Output` 연관 타입과 `transform(input:disposeBag:)`을 정의해요. |
-| `Presentation/RTKMap/RTKMapViewProtocol.swift` | `ViewData`를 `RTKMapViewData`로 고정하고 텍스트 입력과 연결·해제 이벤트를 공개해요. |
-| `Presentation/RTKMap/RTKMapView.swift`, `DashboardView.swift` | 같은 `RTKMapViewProtocol`을 구현해 서로 다른 레이아웃에 같은 데이터를 표시해요. |
-| `Presentation/RTKMap/RTKMapViewModel.swift` | `ViewModelType`을 채택하고 중첩 `Input`·`Output` 타입과 `Driver<RTKMapViewData>`를 제공해요. |
-| `Presentation/RTKMap/RTKMapViewController.swift` | `screen: any RTKMapViewProtocol`과 **구체 타입** `RTKMapViewModel`을 주입받아요. `loadView()`에서 화면을 설치하고 Output을 `render`에 전달해요. |
-| `Application/AppDIContainer.swift` | View Factory는 `any RTKMapViewProtocol`, ViewModel Factory는 `RTKMapViewModel`을 반환해요. |
-
-참고 프로젝트에서는 View 구현체를 교체할 수 있지만 ViewModel 주입 경계는 구체 타입에 연결되어 있어요. 아래 예제는 공통 계약을 따르면서 **화면별 ViewModel 프로토콜도 추가하는 확장안**이에요. 참고 프로젝트에 이미 이 확장까지 구현되어 있다고 해석하지 않아요.
+- 화면 상태가 값 타입 하나로 떨어지나요. `render(_:)`는 상태를 그리는 함수라서, 카메라 이동이나 애니메이션 같은 일회성 명령이 많으면 프로토콜에 메서드가 계속 늘어나요.
+- 같은 데이터를 두 개 이상의 레이아웃으로 보여줄 계획이 있나요. 교체 계획이 없으면 프로토콜의 이점 대부분을 얻지 못해요.
+- View가 서드파티 SDK 객체를 감싸고 ViewModel이 그 객체를 필요로 하나요. `MapBoxFeatureScreenProtocol`이 `makeLocationProvider()`를 공개하는 이유가 이 경우예요. View를 교체하려면 대체 구현도 같은 위치 원천을 제공해야 해서 교체 자유도가 줄어요.
 
 ## 역할과 데이터 흐름
 
@@ -42,7 +40,7 @@ ViewModel의 Output → ViewController가 구독 → View.render(ViewData)
 | ViewController | UIKit 수명 주기, Input 구성, Output 구독과 구독 수명을 관리해요. |
 | DI Container·Coordinator | 구현체를 생성·주입하고 화면 진입과 전환을 연결해요. |
 
-연결 성공 판단이나 숫자 포맷팅은 ViewModel에서 끝내요. View는 전달받은 상태로 색상·버튼 표시를 바꾸거나 패널을 펼칠 수 있어요. 참고 프로젝트의 `RTKMapView`도 패널 확장 같은 표시 전용 상태를 관리해요. View에서 상태를 전혀 보관하면 안 된다는 규칙은 아니에요.
+연결 성공 판단이나 숫자 포맷팅은 ViewModel에서 끝내요. View는 전달받은 상태로 색상·버튼 표시를 바꾸거나 패널을 펼칠 수 있어요. 이 프로젝트의 `MapBoxScreenView`도 마지막으로 그린 경계와 지도 스타일 준비 여부 같은 표시 전용 상태를 보관해요. View에서 상태를 전혀 보관하면 안 된다는 규칙은 아니에요.
 
 ## 공통 계약을 정의해요
 
@@ -64,6 +62,7 @@ protocol ViewType: UIView {
     )
 }
 
+@MainActor
 protocol ViewModelType {
     associatedtype Input
     associatedtype Output
@@ -82,6 +81,10 @@ protocol ViewModelType {
 ```
 
 `ViewType: UIView`는 구현체가 `UIView`의 하위 타입이어야 한다는 제약이에요. 프로토콜이 View 객체를 대신 생성하지는 않아요. 이 제약 덕분에 ViewController가 주입받은 화면을 자신의 `view`로 설치할 수 있어요.
+
+프로토콜에 `@MainActor`를 붙이면 채택 타입이 격리를 물려받아요. 구현체마다 `@MainActor`를 다시 쓰지 않아요. 이 프로젝트의 `MapboxLocationProviding`도 같은 방식이라 `CoreMapboxLocationProvider`와 `MapboxPuckLocationProvider`에는 표시가 없어요.
+
+`transform`은 전달받은 Bag에 구독을 추가할 뿐 스스로 해제하지 않아요. 그래서 **ViewController 하나당 한 번만** 호출해야 해요. 같은 Bag에 두 번 호출하면 구독이 누적되어 위치 요청 같은 동작이 중복 실행돼요. 지도를 전환하면 ViewController와 Bag이 함께 새로 만들어지므로 구독이 쌓이지 않아요.
 
 `associatedtype`은 화면마다 다른 데이터 타입을 선택하게 해요. 공통 계약에 특정 화면의 버튼이나 표시 필드를 넣지 않아요. 공통 계약은 `Presentation/Common/`에, 화면별 계약과 구현은 `Presentation/<Feature>/`에 둘 수 있어요.
 
@@ -260,35 +263,38 @@ ViewController가 Bag을 소유하고 구독 클로저는 ViewController를 약�
 
 ## 생성 위치에서 구현체를 선택해요
 
-```swift
-final class AppDIContainer {
-    // AppFlowCoordinator
-    /// 카운터 화면의 View 구현체를 만들어요.
-    ///
-    /// - Returns: 새로 생성한 카운터 View예요.
-    func makeCounterScreen() -> any CounterViewProtocol {
-        return CounterView(frame: .zero)
-    }
+이 프로젝트의 `AppDIContainer`는 Mapbox 화면을 다음 순서로 조립해요. View를 먼저 만드는 이유는 ViewModel이 쓸 위치 제공자가 화면의 지도에서 나오기 때문이에요.
 
-    // AppFlowCoordinator
-    /// 카운터 화면의 ViewModel 구현체를 만들어요.
-    ///
-    /// - Returns: 새로 생성한 카운터 ViewModel이에요.
-    func makeCounterViewModel() -> any CounterViewModelProtocol {
-        return DefaultCounterViewModel()
-    }
+```swift
+// makeMapBoxFeatureViewController()
+private func makeMapBoxScreen() -> any MapBoxFeatureScreenProtocol {
+    MapBoxScreenView(
+        initialCamera: mapBoxSession.camera,
+        showsCrowdOverlay: true
+    )
+}
+
+// AppRootView
+func makeMapBoxFeatureViewController() -> MapBoxFeatureViewController {
+    let screen = makeMapBoxScreen()
+
+    return MapBoxFeatureViewController(
+        session: mapBoxSession,
+        screen: screen,
+        viewModel: makeMapBoxFeatureViewModel(screen: screen)
+    )
 }
 ```
 
-Coordinator에서는 두 Factory의 반환값을 `CounterViewController(screen:viewModel:)`에 전달해요. 구현체를 바꿀 때는 Factory나 테스트의 주입 코드만 바꾸면 돼요. 화면별 객체 생성과 공유 범위는 [DI Container 패턴](dicontainer.md)을 따라 확인해요.
+구현체를 바꿀 때는 Factory나 테스트의 주입 코드만 바꾸면 돼요. 화면별 객체 생성과 공유 범위는 [DI Container 패턴](dicontainer.md)을 따라 확인해요.
 
 ## 화면 밖 동작과 구독 수명을 정해요
 
-참고 프로젝트는 화면 전환·알림을 Actions 클로저로 Coordinator에 위임해요. ViewModel은 연결 실패 알림 스트림만 직접 구독하고, 메인 스케줄러로 옮긴 뒤 전달받은 Bag에 넣어요. 화면 상태는 Output으로 반환해요.
+이 프로젝트에는 아직 Coordinator가 없어요. `MapBoxFeatureViewModel`은 위치 요청 스트림을 직접 구독해 메인 스케줄러로 옮긴 뒤 전달받은 Bag에 넣고, 화면 상태는 Output으로 반환해요. 알림 표시처럼 UIKit 표현이 필요한 동작은 `Signal`로 내보내고 ViewController가 처리해요.
 
 프로젝트에 적용할 때는 다음을 확인해요.
 
-- 하나의 요청 스트림을 화면 상태와 액션이 함께 구독한다면 요청이 중복 실행되지 않도록 공유 위치를 정해요. 참고 프로젝트는 연결 결과를 `share(replay: 1, scope: .whileConnected)`로 공유해요.
+- 하나의 요청 스트림을 화면 상태와 액션이 함께 구독한다면 요청이 중복 실행되지 않도록 공유 위치를 정해요. `RxLabCounterViewModel`은 카운터 값을 `share(replay: 1, scope: .whileConnected)`로 공유해요.
 - Actions 클로저가 Coordinator를, Coordinator가 화면을 보관한다면 순환 참조가 생기는지 확인해요. 해제되어야 하는 객체는 약하게 캡처해요.
 - ViewModel을 여러 화면에서 공유한다면 화면 하나의 Bag이 전체 작업 수명을 결정해도 되는지 다시 검토해요. 이 예제는 화면마다 ViewModel을 생성해요.
 - Rx의 메인 스케줄러 전달과 Swift의 actor 격리는 별개예요. Swift 6 엄격 동시성을 사용하는 프로젝트에서는 UI 계약의 `@MainActor`와 바인딩 클로저의 격리도 실제 빌드 설정으로 검증해요.

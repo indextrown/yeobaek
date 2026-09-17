@@ -1,3 +1,4 @@
+import Core
 import Foundation
 import RxCocoa
 import RxRelay
@@ -39,57 +40,86 @@ public struct MapBoxAlert: Identifiable, Equatable, Sendable {
     public let message: String
 }
 
+/// 현재 위치 요청의 진행 상태입니다.
+public enum MapBoxLocationState: Equatable {
+    case idle
+    case requestingAuthorization
+    case locating
+    case located
+    case authorizationDenied
+    case failed
+}
+
+/// ViewController가 ViewModel에 전달하는 화면 이벤트입니다.
+public struct MapBoxFeatureInput {
+    /// 앱 수명에서 허용된 최초 화면 등장 이벤트입니다.
+    public let viewDidAppear: Observable<Void>
+
+    /// 사용자가 현재 위치 버튼을 누른 이벤트입니다.
+    public let currentLocationTapped: Observable<Void>
+
+    /// 지도 화면이 사라진 이벤트입니다.
+    public let viewDidDisappear: Observable<Void>
+
+    /// ViewModel이 처리할 화면 입력 스트림을 만듭니다.
+    ///
+    /// - Parameters:
+    ///   - viewDidAppear: 앱 수명에서 허용된 최초 화면 등장 이벤트입니다.
+    ///   - currentLocationTapped: 사용자가 현재 위치 버튼을 누른 이벤트입니다.
+    ///   - viewDidDisappear: 지도 화면이 사라진 이벤트입니다.
+    public init(
+        viewDidAppear: Observable<Void>,
+        currentLocationTapped: Observable<Void>,
+        viewDidDisappear: Observable<Void>
+    ) {
+        self.viewDidAppear = viewDidAppear
+        self.currentLocationTapped = currentLocationTapped
+        self.viewDidDisappear = viewDidDisappear
+    }
+}
+
+/// ViewController가 구독해 화면에 반영하는 Rx 출력입니다.
+public struct MapBoxFeatureOutput {
+    /// 로딩과 권한 메시지를 결정하는 위치 요청 상태입니다.
+    public let state: Driver<MapBoxLocationState>
+
+    /// 지도 중심을 현재 위치로 이동시키는 일회성 명령입니다.
+    public let cameraCommand: Signal<MapBoxCameraCommand>
+
+    /// 한 번만 표시할 위치 오류 알림입니다.
+    public let alert: Signal<MapBoxAlert>
+
+    /// 화면이 구독할 출력 스트림을 묶습니다.
+    ///
+    /// - Parameters:
+    ///   - state: 위치 요청의 최신 진행 상태입니다.
+    ///   - cameraCommand: 현재 위치로 이동시키는 일회성 명령입니다.
+    ///   - alert: 한 번만 표시할 위치 오류 알림입니다.
+    public init(
+        state: Driver<MapBoxLocationState>,
+        cameraCommand: Signal<MapBoxCameraCommand>,
+        alert: Signal<MapBoxAlert>
+    ) {
+        self.state = state
+        self.cameraCommand = cameraCommand
+        self.alert = alert
+    }
+}
+
+/// 현재 위치 화면 ViewModel의 Input과 Output 타입을 고정합니다.
+public protocol MapBoxFeatureViewModelProtocol: ViewModelType
+where Input == MapBoxFeatureInput, Output == MapBoxFeatureOutput {}
+
 /// 화면 입력을 위치 조회 흐름으로 변환하고 UIKit이 구독할 출력을 제공합니다.
-public final class MapBoxFeatureViewModel {
+public final class MapBoxFeatureViewModel: MapBoxFeatureViewModelProtocol {
     /// 현재 위치 요청의 진행 상태입니다.
-    public enum State: Equatable {
-        case idle
-        case requestingAuthorization
-        case locating
-        case located
-        case authorizationDenied
-        case failed
-    }
+    public typealias State = MapBoxLocationState
 
-    /// ViewController가 ViewModel에 전달하는 화면 이벤트입니다.
-    public struct Input {
-        /// 앱 수명에서 허용된 최초 화면 등장 이벤트입니다.
-        public let viewDidAppear: Observable<Void>
+    /// ViewController가 전달하는 화면 이벤트입니다.
+    public typealias Input = MapBoxFeatureInput
 
-        /// 사용자가 현재 위치 버튼을 누른 이벤트입니다.
-        public let currentLocationTapped: Observable<Void>
-
-        /// 지도 화면이 사라진 이벤트입니다.
-        public let viewDidDisappear: Observable<Void>
-
-        /// ViewModel이 처리할 화면 입력 스트림을 만듭니다.
-        ///
-        /// - Parameters:
-        ///   - viewDidAppear: 앱 수명에서 허용된 최초 화면 등장 이벤트입니다.
-        ///   - currentLocationTapped: 사용자가 현재 위치 버튼을 누른 이벤트입니다.
-        ///   - viewDidDisappear: 지도 화면이 사라진 이벤트입니다.
-        public init(
-            viewDidAppear: Observable<Void>,
-            currentLocationTapped: Observable<Void>,
-            viewDidDisappear: Observable<Void>
-        ) {
-            self.viewDidAppear = viewDidAppear
-            self.currentLocationTapped = currentLocationTapped
-            self.viewDidDisappear = viewDidDisappear
-        }
-    }
-
-    /// ViewController가 구독해 화면에 반영하는 Rx 출력입니다.
-    public struct Output {
-        /// 로딩과 권한 메시지를 결정하는 위치 요청 상태입니다.
-        public let state: Driver<State>
-
-        /// 지도 중심을 현재 위치로 이동시키는 일회성 명령입니다.
-        public let cameraCommand: Signal<MapBoxCameraCommand>
-
-        /// 한 번만 표시할 위치 오류 알림입니다.
-        public let alert: Signal<MapBoxAlert>
-    }
+    /// ViewController가 구독하는 Rx 출력입니다.
+    public typealias Output = MapBoxFeatureOutput
 
     /// Rx 위치 요청에서 화면 상태로 변환하기 위한 내부 이벤트입니다.
     private enum Event {
@@ -115,9 +145,6 @@ public final class MapBoxFeatureViewModel {
     /// 새로운 위치 오류 알림만 화면에 전달합니다.
     private let alertRelay = PublishRelay<MapBoxAlert>()
 
-    /// 현재 Input과 Output을 연결한 Rx 구독의 수명을 관리합니다.
-    private var transformDisposeBag = DisposeBag()
-
     /// 취소 시 로딩 상태인지 판단하기 위한 마지막 상태입니다.
     private var state: State = .idle
 
@@ -129,7 +156,6 @@ public final class MapBoxFeatureViewModel {
     /// - Parameters:
     ///   - provider: Rx 권한과 위치를 제공할 객체입니다.
     ///   - timeout: 단일 위치 조회 제한 시간입니다.
-    @MainActor
     public init(
         provider: any MapboxLocationProviding,
         timeout: RxTimeInterval = MapBoxFeatureLocationPolicy.compatibilityTimeout
@@ -138,8 +164,25 @@ public final class MapBoxFeatureViewModel {
         self.timeout = timeout
     }
 
+    /// 화면이 제공한 위치 원천을 사용하되 UI 테스트 시나리오를 우선합니다.
+    ///
+    /// UI 테스트에서 실제 센서 대신 고정 좌표를 사용해야 하므로, 조립 계층이
+    /// 환경 변수를 직접 확인하지 않도록 이 생성자가 판단을 담당합니다.
+    ///
+    /// - Parameter screenProvider: 화면의 지도 위치 점에 연결된 위치 제공자입니다.
+    public convenience init(
+        screenProvider: any MapboxLocationProviding
+    ) {
+#if DEBUG
+        if ProcessInfo.processInfo.environment["UITEST_LOCATION_SCENARIO"] == "success" {
+            self.init(provider: MapBoxUITestLocationProvider())
+            return
+        }
+#endif
+        self.init(provider: screenProvider)
+    }
+
     /// Core Location 제공자와 기본 제한 시간으로 ViewModel을 만듭니다.
-    @MainActor
     public convenience init() {
 #if DEBUG
         if ProcessInfo.processInfo.environment["UITEST_LOCATION_SCENARIO"] == "success" {
@@ -152,13 +195,16 @@ public final class MapBoxFeatureViewModel {
 
     /// 화면 입력을 위치 조회 흐름에 연결하고 출력 스트림을 반환합니다.
     ///
-    /// - Parameter input: 화면 생명주기와 사용자 입력 스트림입니다.
+    /// 전달받은 Bag에 구독을 추가하므로 ViewController 하나당 한 번만 호출합니다.
+    ///
+    /// - Parameters:
+    ///   - input: 화면 생명주기와 사용자 입력 스트림입니다.
+    ///   - disposeBag: 위치 요청 구독의 수명을 관리할 Bag입니다.
     /// - Returns: UIKit 화면이 구독할 상태와 명령 스트림입니다.
-    @MainActor
     public func transform(
-        input: Input
+        input: Input,
+        disposeBag: DisposeBag
     ) -> Output {
-        transformDisposeBag = DisposeBag()
         let disappearance = input.viewDidDisappear.share()
 
         Observable.merge(
@@ -174,14 +220,14 @@ public final class MapBoxFeatureViewModel {
         .subscribe(onNext: { [weak self] event in
             self?.apply(event)
         })
-        .disposed(by: transformDisposeBag)
+        .disposed(by: disposeBag)
 
         disappearance
             .observe(on: MainScheduler.instance)
             .subscribe(onNext: { [weak self] in
                 self?.handleDisappearance()
             })
-            .disposed(by: transformDisposeBag)
+            .disposed(by: disposeBag)
 
         return Output(
             state: stateRelay
@@ -205,7 +251,6 @@ public final class MapBoxFeatureViewModel {
     }
 }
 
-@MainActor
 private extension MapBoxFeatureViewModel {
     /// 현재 권한부터 단일 위치 결과까지를 화면 이벤트로 변환합니다.
     ///
@@ -301,7 +346,6 @@ private extension MapBoxFeatureViewModel {
 }
 
 #if DEBUG
-@MainActor
 private final class MapBoxUITestLocationProvider: MapboxLocationProviding {
     func authorizationStatus() -> MapBoxAuthorization {
         .authorized

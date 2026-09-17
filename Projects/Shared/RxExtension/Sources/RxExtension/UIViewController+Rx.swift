@@ -1,7 +1,6 @@
 import ThirdParty
 import UIKit
 
-@MainActor
 public extension Reactive where Base: UIViewController {
     /// 화면 표시가 끝난 시점을 전달하는 UI 생명주기 이벤트입니다.
     var viewDidAppear: ControlEvent<Void> {

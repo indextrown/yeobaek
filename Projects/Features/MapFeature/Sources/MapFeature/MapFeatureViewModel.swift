@@ -307,7 +307,6 @@ public final class MapFeatureViewModel {
 }
 
 #if DEBUG
-@MainActor
 private final class MapFeatureUITestLocationProvider: MapLocationProviding {
     func authorizationStatus() -> MapFeatureAuthorization { .authorized }
 

@@ -1,7 +1,6 @@
-import Data
-import SwiftUI
 import MapBoxFeature
 import MapFeature
+import SwiftUI
 
 struct AppRootView: View {
     private enum MapProvider: String, CaseIterable, Identifiable {
@@ -11,24 +10,33 @@ struct AppRootView: View {
         var id: Self { self }
     }
 
+    /// 지도 세션과 화면 조립을 담당하는 앱 전역 컨테이너입니다.
+    private let container: AppDIContainer
+
     @State private var selectedProvider: MapProvider = .mapKit
-    @State private var mapKitSession = MapFeatureSession()
-    @State private var mapboxSession = MapBoxSession(
-        crowdViewModel: MapBoxCrowdViewModel(
-            areas: CrowdMockData.areas,
-            repository: MockCrowdRepository(),
-            isMockData: true
-        )
-    )
+
+    /// 앱 전역 의존성을 주입해 루트 화면을 만듭니다.
+    ///
+    /// - Parameter container: 지도 세션과 화면을 조립할 DI Container입니다.
+    init(
+        container: AppDIContainer
+    ) {
+        self.container = container
+    }
 
     var body: some View {
         ZStack(alignment: .top) {
             Group {
                 switch selectedProvider {
                 case .mapKit:
-                    MapFeatureView(session: mapKitSession)
+                    MapFeatureView(session: container.mapKitSession)
                 case .mapbox:
-                    MapBoxFeatureView(session: mapboxSession)
+                    MapBoxFeatureView(
+                        session: container.mapBoxSession,
+                        makeViewController: {
+                            container.makeMapBoxFeatureViewController()
+                        }
+                    )
                 }
             }
 
@@ -49,5 +57,5 @@ struct AppRootView: View {
 }
 
 #Preview {
-    AppRootView()
+    AppRootView(container: AppDIContainer())
 }

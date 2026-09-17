@@ -38,7 +38,6 @@ public protocol MapboxLocationProviding: AnyObject {
     func cancel()
 }
 
-@MainActor
 public final class CoreMapboxLocationProvider: NSObject, MapboxLocationProviding, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var authorizationObserver: ((SingleEvent<MapBoxAuthorization>) -> Void)?
