@@ -1,7 +1,6 @@
 import SwiftUI
 
 /// UIKit으로 만든 RxLab 카운터를 SwiftUI Demo에서 실행할 수 있게 감쌉니다.
-@MainActor
 public struct RxLabCounterView: UIViewControllerRepresentable {
     public init() {}
 

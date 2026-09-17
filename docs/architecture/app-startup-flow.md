@@ -16,19 +16,24 @@ Yeobaek은 SwiftUI App 생명주기를 사용한다. `YeobaekApp`이 `AppRootVie
 | 순서 | 실행 위치 | 동작 |
 | ---: | --- | --- |
 | 1 | `YeobaekApp` | `@main` 진입점으로 실행된다. |
-| 2 | `WindowGroup` | 앱 윈도에 `AppRootView`를 생성한다. |
-| 3 | `AppDependencies.make()` | 번들 GeoJSON으로 121곳 장소와 경계를 읽고, 서울 API 키로 `SeoulCrowdRepository`를 만든다. UI 테스트의 `UITEST_CROWD_SCENARIO=sample`이면 `SampleCrowdRepository`를 쓴다. |
-| 4 | `AppRootView` | `CrowdClient.live`를 주입한 `StoreOf<CrowdHomeFeature>`와, 같은 저장소를 쓰는 `MapBoxCrowdViewModel`을 담은 `MapBoxSession`을 `@State`로 만든다. |
-| 5 | `MapBoxSession.onSelectPlace` | 지도에서 영역을 누르면 Store에 `.placeTapped`를 보내 상세 화면을 연다. |
-| 6 | `CrowdHomeView` | `NavigationStack` 안에 지도와 홈 시트를 겹쳐 그리고, 목록·상세로 이동한다. |
+| 2 | `YeobaekApp` | `AppDIContainer`를 `@State`로 한 번만 생성한다. |
+| 3 | `WindowGroup` | 앱 윈도에 컨테이너를 주입한 `AppRootView`를 생성한다. |
+| 4 | `AppDIContainer.init` | 번들 GeoJSON을 읽는 `BundledPlaceRepository`와 서울 API 키로 `SeoulCrowdRepository`를 만든다. UI 테스트의 `UITEST_CROWD_SCENARIO=sample`이면 `SampleCrowdRepository`를 쓴다. |
+| 5 | `AppDIContainer` | `CrowdClient.live`를 주입한 `StoreOf<CrowdHomeFeature>`와, 같은 저장소를 쓰는 `MapBoxCrowdViewModel`을 담은 `MapBoxSession`을 `lazy var`로 만든다. |
+| 6 | `MapBoxSession.onSelectPlace` | 지도에서 영역을 누르면 Store에 `.placeTapped`를 보내 상세 화면을 연다. |
+| 7 | `CrowdHomeView` | `NavigationStack` 안에 지도와 홈 시트를 겹쳐 그리고, 목록·상세로 이동한다. |
 
 ```text
 UIApplication
 └─ YeobaekApp
+   ├─ AppDIContainer (@State, 앱 수명 동안 하나)
    └─ WindowGroup
-      └─ AppRootView ── AppDependencies (장소 GeoJSON, SeoulCrowdRepository)
-         └─ CrowdHomeView(StoreOf<CrowdHomeFeature>)
-            ├─ MapBoxFeatureView(MapBoxSession)   바탕 지도
+      └─ AppRootView(container:)
+         └─ CrowdHomeView(container.crowdHomeStore)
+            ├─ MapBoxFeatureView(                바탕 지도
+            │    session: container.mapBoxSession,
+            │    makeViewController: container.makeMapBoxFeatureViewController
+            │  )
             ├─ 검색 · 분류 칩 · 기준 시각           위쪽 겹침
             ├─ HomeSummarySheet                  아래 시트
             └─ path: PlaceListView / PlaceDetailView
@@ -38,14 +43,14 @@ UIApplication
 
 | 객체 | 책임 | 생명주기 소유자 |
 | --- | --- | --- |
-| `YeobaekApp` | 앱 진입과 최초 Scene 구성 | SwiftUI App 런타임 |
-| `AppDependencies` | 장소 목록과 혼잡도·상세 저장소 조립 | `AppRootView.init` |
-| `AppRootView` | Store와 지도 Session 생성, 지도 탭을 Store로 연결 | `WindowGroup` |
-| `StoreOf<CrowdHomeFeature>` | 121곳 혼잡도, 분류 선택, 목록·상세 이동 경로 | `AppRootView`의 `@State` |
-| `MapBoxSession` | 마지막 카메라, 자동 위치 요청 여부, 혼잡도 ViewModel, 시트 높이만큼의 버튼 여백 | `AppRootView`의 `@State` |
+| `YeobaekApp` | 앱 진입, 최초 Scene 구성과 컨테이너 생성 | SwiftUI App 런타임 |
+| `AppDIContainer` | Repository, Store, Session, ViewModel과 화면 조립 | `YeobaekApp`의 `@State` |
+| `AppRootView` | 홈 화면과 지도 화면 배치, 시트 높이를 지도 버튼 여백으로 전달 | `WindowGroup` |
+| `StoreOf<CrowdHomeFeature>` | 121곳 혼잡도, 분류 선택, 목록·상세 이동 경로 | `AppDIContainer`의 `lazy var` |
+| `MapBoxSession` | 마지막 카메라, 자동 위치 요청 여부, 혼잡도 ViewModel, 시트 높이만큼의 버튼 여백 | `AppDIContainer`의 `lazy var` |
 | `MapBoxFeatureView` | UIKit + RxSwift 기반 Mapbox 화면을 SwiftUI 계층에 연결하는 래퍼 | `CrowdHomeView` |
 
-지도와 홈 Store는 같은 `SeoulCrowdRepository` 인스턴스를 공유한다. 저장소가 장소별 5분 캐시와 진행 중 요청 공유를 맡으므로, 두 화면이 같은 장소를 요청해도 서울 API는 한 번만 호출된다.
+지도와 홈 Store는 같은 `SeoulCrowdRepository` 인스턴스를 공유한다. 저장소가 장소별 5분 캐시와 진행 중 요청 공유를 맡으므로, 두 화면이 같은 장소를 요청해도 서울 API는 한 번만 호출된다. 컨테이너의 객체 생성 방식은 [DI Container 패턴](dicontainer.md)에서 확인한다.
 
 ## 혼잡도 불러오기
 
@@ -83,11 +88,12 @@ Demo는 Feature를 빠르게 실행하기 위한 개발 도구다. 제품 앱의
 ## 아직 시작 흐름에 없는 것
 
 - GRDB 데이터베이스 연결과 Migration 실행
-- UseCase 계층과 기능이 늘었을 때의 App DI Container
+- UseCase 계층
 - 원격 API 클라이언트의 앱 범위 생명주기 관리
 - 로그인과 사용자 세션 초기화
+- 화면 전환을 담당하는 Coordinator
 
-이 기능을 추가할 때는 `YeobaekApp` 또는 `AppRootView`에서 구체 타입을 계속 직접 만들기보다 App 조립 전용 객체를 두는 방식을 먼저 검토한다.
+이 기능을 추가할 때는 `YeobaekApp`이나 `AppRootView`에서 구체 타입을 직접 만들지 않고 `AppDIContainer`에 추가한다.
 
 ## 변경 후 확인할 것
 

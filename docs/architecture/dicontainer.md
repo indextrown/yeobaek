@@ -21,49 +21,64 @@ description: AppDIContainer의 네 가지 객체 생성 방식, 공유 생명 �
 | `func make...()` | 요청할 때마다 새 인스턴스가 필요해요. | 화면이나 ViewModel처럼 호출마다 독립된 상태를 가져야 하는 객체에 사용해요. |
 
 ```swift
+@MainActor
 final class AppDIContainer {
-    // 1. let — AppDIContainer를 생성할 때 만들고 공유해요.
+    // MARK: - Repository
 
-    // APIClient
-    private let appConfiguration = AppConfiguration.current
+    // makeMapBoxCrowdViewModel()
+    // crowdHomeStore
+    /// 번들에 포함된 장소 목록과 경계예요.
+    private let places = BundledPlaceRepository()
 
-    // ProfileRepository
-    private let logger = AppLogger()
-
-    // 2. lazy var — 처음 필요할 때 만들고 공유해요.
-
-    // ProfileRepository
-    private lazy var apiClient: APIClient =
-        APIClient(
-            configuration: self.appConfiguration
-        )
-
-    // 3. lazy var + 실행 클로저 — 처음 필요할 때 만들고 추가 설정한 뒤 공유해요.
-
-    // ProfileViewModel
-    private lazy var profileRepository: ProfileRepository = {
-        let repository = DefaultProfileRepository(
-            apiClient: self.apiClient
-        )
-
-        repository.logger = self.logger
-
-        return repository
+    // makeMapBoxCrowdViewModel()
+    /// 번들에서 읽은 장소와 경계예요. 처음 사용할 때 한 번 읽어요.
+    private lazy var catalog: PlaceCatalog = {
+        (try? places.loadCatalog()) ?? PlaceCatalog(places: [], areas: [])
     }()
 
-    // 4. make...() — 호출할 때마다 새로운 객체를 만들어요.
+    // makeMapBoxCrowdViewModel()
+    // crowdHomeStore
+    /// 실행 환경에 맞는 혼잡도·상세 저장소예요. `init`에서 UI 테스트 여부로 골라요.
+    private let crowdRepository: any CrowdRepository & PlaceDetailRepository
 
-    // ProfileFlowCoordinator
-    /// 프로필 화면에서 사용할 ViewModel을 만들어요.
+    // MARK: - Store
+
+    // AppRootView
+    // mapBoxSession
+    /// 홈, 목록, 상세 이동 경로를 앱 실행 동안 유지하는 TCA Store예요.
+    private(set) lazy var crowdHomeStore: StoreOf<CrowdHomeFeature> = { ... }()
+
+    // MARK: - Session
+
+    // AppRootView
+    // makeMapBoxFeatureViewController()
+    /// Mapbox 지도의 카메라, 자동 요청 여부와 혼잡도 결과를 앱 실행 동안 유지해요.
+    /// 지도에서 장소를 누르면 홈 Store로 전달해요.
+    private(set) lazy var mapBoxSession: MapBoxSession = {
+        let session = MapBoxSession(
+            crowdViewModel: makeMapBoxCrowdViewModel(),
+            showsCrowdPanel: false,
+            controlsBottomInset: CrowdHomeLayout.mapControlsBottomInset
+        )
+        let store = crowdHomeStore
+        session.onSelectPlace = { placeID in
+            store.send(.placeTapped(placeID))
+        }
+        return session
+    }()
+
+    // MARK: - ViewModel
+
+    // mapBoxSession
+    /// Mapbox 화면에서 사용할 혼잡도 ViewModel을 만들어요.
     ///
-    /// - Parameter userID: 조회할 사용자의 식별자예요.
-    /// - Returns: 새로 생성한 프로필 ViewModel이에요.
-    func makeProfileViewModel(
-        userID: String
-    ) -> ProfileViewModel {
-        return ProfileViewModel(
-            userID: userID,
-            repository: self.profileRepository
+    /// - Returns: 번들 경계와 혼잡도 저장소를 연결한 혼잡도 ViewModel이에요.
+    private func makeMapBoxCrowdViewModel() -> MapBoxCrowdViewModel {
+        MapBoxCrowdViewModel(
+            areas: catalog.areas,
+            places: catalog.places,
+            repository: crowdRepository,
+            isMockData: false
         )
     }
 }
@@ -71,27 +86,17 @@ final class AppDIContainer {
 
 `let`은 컨테이너와 함께 객체를 바로 만들어요. 두 `lazy var` 방식은 모두 최초 접근 시 한 번만 객체를 만들고 공유해요. 실행 클로저는 객체를 만든 뒤 프로퍼티를 설정하거나 초기화 과정을 여러 줄로 나눌 때만 사용해요. `make...()`는 호출할 때마다 새 객체를 반환해요.
 
+Store와 Session은 SwiftUI가 지도 화면을 다시 만들어도 유지해야 해서 `lazy var`로 공유하고, 화면과 ViewModel은 다시 만들 때마다 새 인스턴스가 필요해서 `make...()`를 사용해요. 지도(Rx)와 홈 Store(TCA)는 같은 `crowdRepository`를 받아서 저장소의 5분 캐시를 함께 써요. `AppDIContainer`는 `MapBoxSession` 같은 `@MainActor` 타입을 만들기 때문에 컨테이너 자체도 `@MainActor`예요.
+
 ### 사용처 주석 규칙
 
-모든 프로퍼티와 메서드 위에는 해당 의존성을 사용하는 컴포넌트를 주석으로 적어요.
+모든 프로퍼티와 메서드 위에는 해당 의존성을 사용하는 컴포넌트를 주석으로 적어요. 위 예시의 `// AppRootView`, `// makeMapBoxCrowdViewModel()`이 그 주석이에요. 사용처가 여러 곳이면 줄을 나눠 모두 적어요.
 
 ```swift
-// SplashViewModel
-// MainViewModel
-private func makeCheckNetworkUseCase() -> CheckNetworkUseCase {
-    return DefaultCheckNetworkUseCase(
-        self.networkMonitorRepository
-    )
-}
-
-// MainViewModel
-// MyVesselViewModel
-// MyFleetViewModel
-// SettingViewModel
-private lazy var myFleetUseCase: MyFleetUseCase = {
-    return DefaultMyFleetUseCase(
-        repository: self.myFleetRepository
-    )
+// AppRootView
+// makeMapBoxFeatureViewController()
+private(set) lazy var mapBoxSession: MapBoxSession = {
+    MapBoxSession(crowdViewModel: makeMapBoxCrowdViewModel())
 }()
 ```
 
@@ -103,83 +108,70 @@ private lazy var myFleetUseCase: MyFleetUseCase = {
 
 ### MARK 카테고리 구분
 
-카테고리는 의존성 흐름에 따라 Infrastructure → Domain → Presentation 순서로 배치해요.
+카테고리는 의존성 흐름에 따라 Infrastructure → Domain → Presentation 순서로 배치해요. 현재 컨테이너가 사용하는 카테고리는 다음 여섯 개예요. Storage, Service, UseCase는 아직 조립할 객체가 없어서 두지 않아요.
 
 ```swift
+@MainActor
 final class AppDIContainer {
-    // MARK: - Storage
-
-    // Storage dependencies
-
-    // MARK: - Service
-
-    // Service dependencies
-
-    // MARK: - Manager
-
-    // Manager dependencies
-
     // MARK: - Repository
 
-    // Repository dependencies
+    // MARK: - Store
 
-    // MARK: - UseCase
-
-    // UseCase dependencies
+    // MARK: - Session
 
     // MARK: - ViewModel
 
-    /// Splash 화면에서 사용할 ViewModel을 만들어요.
-    ///
-    /// - Parameter actions: Splash 화면에서 실행할 동작이에요.
-    /// - Returns: 새로 생성한 Splash ViewModel이에요.
-    func makeSplashViewModel(
-        _ actions: SplashViewActions
-    ) -> SplashViewModel {
-        return DefaultSplashViewModel(
-            actions: actions
-        )
-    }
+    // MARK: - View
 
-    /// Main 화면에서 사용할 ViewModel을 만들어요.
-    ///
-    /// - Parameter actions: Main 화면에서 실행할 동작이에요.
-    /// - Returns: 새로 생성한 Main ViewModel이에요.
-    func makeMainViewModel(
-        _ actions: MainViewModelActions
-    ) -> MainViewModel {
-        return DefaultMainViewModel(
-            actions: actions
-        )
-    }
+    // MARK: - ViewController
 }
 ```
 
+GRDB 저장소나 별도 API 클라이언트를 공유해야 할 때 `// MARK: - Storage`와 `// MARK: - Service`를 Repository 위에 추가해요. Store는 TCA Feature의 앱 수명 상태라서 Session과 같은 위치(Presentation 앞)에 둬요. UseCase 계층을 도입하면 Repository와 ViewModel 사이에 `// MARK: - UseCase`를 둬요.
+
 ### ViewModel Factory 메서드
 
-ViewModel Factory 메서드는 `private`로 감추지 않고 `AppFlowCoordinator`에서 호출할 수 있게 선언해요.
+컨테이너 밖에서 호출하는 Factory만 `internal`로 열어요. 이 프로젝트에는 아직 Coordinator가 없어서 `AppRootView`가 유일한 호출자예요.
 
 ```swift
-// MARK: - ViewModel
+// MARK: - View
 
-/// Splash 화면에서 사용할 ViewModel을 만들어요.
+// makeMapBoxFeatureViewController()
+/// Mapbox 화면의 View 구현체를 만들어요.
 ///
-/// - Parameter actions: Splash 화면에서 실행할 동작이에요.
-/// - Returns: 새로 생성한 Splash ViewModel이에요.
-func makeSplashViewModel(
-    _ actions: SplashViewActions
-) -> SplashViewModel {
-    return DefaultSplashViewModel(
-        actions: actions,
-        startNetworkMonitoringUseCase: self.makeStartNetworkMonitoringUseCase(),
-        checkNetworkUseCase: self.makeCheckNetworkUseCase()
+/// - Returns: 마지막 카메라를 이어받고 혼잡도 채움만 표시하는 View예요.
+private func makeMapBoxScreen() -> any MapBoxFeatureScreenProtocol {
+    MapBoxScreenView(
+        initialCamera: mapBoxSession.camera,
+        showsCrowdOverlay: true,
+        showsCrowdPanel: mapBoxSession.showsCrowdPanel,
+        controlsBottomInset: mapBoxSession.controlsBottomInset
+    )
+}
+
+// MARK: - ViewController
+
+// AppRootView
+/// Mapbox 화면의 View와 ViewModel을 조립해요.
+///
+/// - Returns: 새로 조립한 Mapbox 화면 ViewController예요.
+func makeMapBoxFeatureViewController() -> MapBoxFeatureViewController {
+    let screen = makeMapBoxScreen()
+
+    return MapBoxFeatureViewController(
+        session: mapBoxSession,
+        screen: screen,
+        viewModel: makeMapBoxFeatureViewModel(screen: screen)
     )
 }
 ```
 
+View Factory는 `any MapBoxFeatureScreenProtocol`을, ViewModel Factory는 `any MapBoxFeatureViewModelProtocol`을 반환해요. ViewModel이 쓸 위치 제공자가 화면의 지도에서 나오기 때문에 View를 먼저 만들고 그 결과를 ViewModel Factory에 전달해요.
+
 ## 관련 문서
 
-- [전체 아키텍처 개요](architecture.md)에서 계층과 의존성 방향을 확인해요.
+- [아키텍처 개요](architecture-overview.md)에서 현재 모듈 책임과 의존성 방향을 확인해요.
+- [앱 시작 흐름](app-startup-flow.md)에서 컨테이너의 생성 위치와 Session 생명주기를 확인해요.
 - [View·ViewModel 프로토콜 패턴](view-viewmodel-protocols.md)에서 화면 Factory가 프로토콜을 반환하는 예시를 확인해요.
 - [프로젝트 작업 안내](../../AGENTS.md)에서 문서 적용 기준을 확인해요.
-- 프로젝트에 Coordinator Flow 가이드나 ViewModel Actions 패턴 문서가 있다면 함께 확인해요.
+- 화면 전환을 담당하는 Coordinator는 아직 없어요. 도입할 때 이 문서의 Factory 호출자를 함께 갱신해요.

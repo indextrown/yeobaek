@@ -2,7 +2,6 @@ import SwiftUI
 import UIKit
 
 /// UIKit의 UIView를 SwiftUI 계층에서 재사용할 수 있게 연결합니다.
-@MainActor
 public struct UIViewRepresentableContainer<Content: UIView>: UIViewRepresentable {
     private let makeContent: () -> Content
     private let updateContent: (Content) -> Void
@@ -44,7 +43,6 @@ public struct UIViewRepresentableContainer<Content: UIView>: UIViewRepresentable
 }
 
 /// UIKit의 UIViewController를 SwiftUI 계층에서 생명주기와 함께 재사용할 수 있게 연결합니다.
-@MainActor
 public struct UIViewControllerRepresentableContainer<Content: UIViewController>: UIViewControllerRepresentable {
     private let makeContent: () -> Content
     private let updateContent: (Content) -> Void

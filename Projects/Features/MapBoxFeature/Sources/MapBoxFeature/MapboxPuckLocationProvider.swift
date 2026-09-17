@@ -46,7 +46,6 @@ struct MapBoxLocationSample: Sendable {
 }
 
 /// Mapbox 위치 점의 좌표와 갱신 이벤트를 현재 위치 요청에 제공합니다.
-@MainActor
 final class MapboxPuckLocationProvider: MapboxLocationProviding {
     /// 위치 권한 요청만 담당하며, 별도 좌표 측정을 시작하지 않습니다.
     private let authorizationProvider: any MapboxLocationProviding
