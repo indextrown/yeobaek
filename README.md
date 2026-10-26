@@ -10,15 +10,20 @@
 - 추정 인구와 데이터 기준 시각 확인
 - 시간대별 혼잡도 예측을 보고 방문 시간 비교
 
-현재 App 모듈의 기본 실행 구조를 준비한 단계이며, 첫 버전은 서울 주요 장소를 중심으로 준비합니다.
+첫 버전은 서울 주요 121곳을 대상으로 해요. 지금 동작하는 화면은 다음과 같아요.
 
-## 기술 스택 (예정)
+- **지도 홈**: Mapbox 지도 위에 121곳 혼잡도 영역, 단계별 분포, 지금 붐비는 순 세 곳
+- **장소 목록**: 공식 분류 5개 탭, 검색, 붐비는 순/인구 많은 순 정렬
+- **장소 상세**: 현재 단계와 추정 인구, 사람 흐름(모이는 중/빠지는 중), 12시간 예측과 가장 한산한 시간, 방문자 구성, 상권, 교통, 날씨, 행사
+
+## 기술 스택
 
 | 구분 | 기술 | 용도 |
 | --- | --- | --- |
-| 지도 | MapKit, Mapbox | 두 지도 방식으로 장소별 혼잡도 시각화 |
-| UI 프레임워크 | UIKit, SwiftUI | MapBoxFeature는 UIKit + RxSwift로 구현하고, MapFeature만 SwiftUI로 구현 |
-| SwiftUI 상태 관리 | The Composable Architecture (TCA) | SwiftUI 기반 MapFeature의 상태, 액션, 의존성 관리 |
+| 지도 | Mapbox (MapKit은 Demo로 유지) | 121곳 혼잡도 영역 시각화 |
+| UI 프레임워크 | UIKit, SwiftUI | 지도(MapBoxFeature)는 UIKit + RxSwift, 홈 시트·목록·상세(CrowdFeature)는 SwiftUI |
+| SwiftUI 상태 관리 | The Composable Architecture (TCA) | SwiftUI Feature의 상태, 액션, 의존성, 화면 이동 관리 |
+| 데이터 | 서울 실시간 도시데이터 Open API | 121곳 실시간 혼잡도·12시간 예측(`citydata_ppltn`), 장소 상세(`citydata`) |
 | 앱 아키텍처 | MVVM + Clean Architecture + RxSwift | 화면 상태, 비즈니스 규칙, 데이터 구현 분리 |
 | 프로젝트 관리 | Tuist | Xcode 프로젝트 생성 및 모듈 의존성 관리 |
 | 로컬 DB | GRDB | SQLite 기반 장소와 혼잡도 데이터 저장 및 조회 |
@@ -113,7 +118,7 @@ Place.id
 - [SeoulPopulationDTO](Projects/Data/Sources/Data/DTO/SeoulPopulationDTO.swift)와 [SeoulPopulationResponseDTO](Projects/Data/Sources/Data/DTO/SeoulPopulationResponseDTO.swift)는 `Core`에서 서울시 API의 항목과 전체 응답 형식을 받아요. 문자열을 숫자·시각·혼잡도 타입으로 바꾸는 작업은 [변환 코드](Projects/Data/Sources/Data/Mapping/SeoulPopulationDTO+Mapping.swift)가 맡아요.
 - [MockCrowdRepository](Projects/Data/Sources/Data/Repositories/MockCrowdRepository.swift)는 현재 `Core`에 있는 목업 구현이에요. [CrowdMockData](Projects/Data/Sources/Data/Mocks/CrowdMockData.swift)의 가상 장소와 혼잡도 정보를 사용하며, 목업 장소 코드는 실제 API 요청에 사용하지 않아요.
 
-현재는 모델, DTO 변환, 목업 조회까지 준비되어 있어요. 실제 장소 경계 리소스, API 네트워크 호출, 지도 화면과의 데이터 연결은 이후 단계에서 추가해요.
+실제 서울시 API(`SeoulCrowdRepository`)와 121곳 장소 경계(`BundledPlaceRepository`, `Resources/SeoulPlaces.geojson`)가 연결되어 있어요. 앱을 실행하려면 `Projects/App/Secrets.xcconfig`에 `SEOUL_API_KEY`와 `MAPBOX_ACCESS_TOKEN`을 넣어요.
 
 ## 모듈 디렉터리 구성
 
