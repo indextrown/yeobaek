@@ -1,3 +1,4 @@
+import ComposableArchitecture
 import Data
 import SwiftUI
 import MapBoxFeature
@@ -12,7 +13,9 @@ struct AppRootView: View {
     }
 
     @State private var selectedProvider: MapProvider = .mapKit
-    @State private var mapKitSession = MapFeatureSession()
+    @State private var mapKitStore = Store(initialState: MapKitFeature.State()) {
+        MapKitFeature()
+    }
     @State private var mapboxSession = MapBoxSession(
         crowdViewModel: MapBoxCrowdViewModel(
             areas: CrowdMockData.areas,
@@ -26,7 +29,7 @@ struct AppRootView: View {
             Group {
                 switch selectedProvider {
                 case .mapKit:
-                    MapFeatureView(session: mapKitSession)
+                    MapFeatureView(store: mapKitStore)
                 case .mapbox:
                     MapBoxFeatureView(session: mapboxSession)
                 }

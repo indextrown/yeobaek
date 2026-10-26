@@ -10,7 +10,9 @@ let project = Project(
             bundleId: "com.indextrown.yeobaek.map-feature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
-            dependencies: [],
+            dependencies: [
+                .project(target: "ThirdParty", path: "../../Shared/ThirdParty"),
+            ],
             settings: .settings(
                 base: [
                     "SWIFT_VERSION": "6.0",

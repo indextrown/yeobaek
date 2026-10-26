@@ -1,51 +1,29 @@
+import ComposableArchitecture
 import MapKit
 import SwiftUI
 
 public struct MapFeatureView: View {
-    @State private var session: MapFeatureSession
-    @State private var viewModel: MapFeatureViewModel
+    @Bindable private var store: StoreOf<MapKitFeature>
     @State private var cameraPosition: MapCameraPosition
 
-    /// 앱 수명 자동 실행 상태와 함께 MapKit 화면을 만듭니다.
+    /// 앱 실행 동안 유지되는 Store로 MapKit 화면을 만듭니다.
     ///
-    /// - Parameters:
-    ///   - session: 앱 실행 중 자동 요청 여부를 보관하는 상태입니다.
-    ///   - viewModel: 위치 요청과 화면 상태를 관리하는 ViewModel입니다.
+    /// - Parameter store: 위치 요청과 카메라 상태를 관리하는 Store입니다.
     @MainActor
     public init(
-        session: MapFeatureSession,
-        viewModel: MapFeatureViewModel
+        store: StoreOf<MapKitFeature>
     ) {
-        _session = State(initialValue: session)
-        _viewModel = State(initialValue: viewModel)
+        self.store = store
         _cameraPosition = State(initialValue: .region(MKCoordinateRegion(
             center: CLLocationCoordinate2D(
-                latitude: session.cameraCoordinate.latitude,
-                longitude: session.cameraCoordinate.longitude
+                latitude: store.cameraCoordinate.latitude,
+                longitude: store.cameraCoordinate.longitude
             ),
             span: MKCoordinateSpan(
-                latitudeDelta: session.cameraSpan,
-                longitudeDelta: session.cameraSpan
+                latitudeDelta: store.cameraSpan,
+                longitudeDelta: store.cameraSpan
             )
         )))
-    }
-
-    /// 앱 수명 자동 실행 상태와 기본 위치 ViewModel로 MapKit 화면을 만듭니다.
-    ///
-    /// - Parameter session: 앱 실행 중 자동 요청 여부를 보관하는 상태입니다.
-    @MainActor
-    public init(
-        session: MapFeatureSession
-    ) {
-        self.init(
-            session: session,
-            viewModel: MapFeatureViewModel()
-        )
-    }
-
-    @MainActor
-    public init() {
-        self.init(session: MapFeatureSession())
     }
 
     public var body: some View {
@@ -61,26 +39,23 @@ public struct MapFeatureView: View {
                         longitude: context.region.center.longitude
                     )
                     let span = context.region.span.latitudeDelta
+                    // 지도 갱신 도중 상태를 바꾸지 않도록 다음 main actor 턴에 전달합니다.
                     Task { @MainActor in
-                        session.recordCamera(
-                            coordinate: coordinate,
-                            span: span
-                        )
+                        store.send(.cameraChanged(coordinate, span: span))
                     }
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityIdentifier("mapkit-map")
                 .accessibilityValue(
-                    session.cameraIsCenteredOnCurrentLocation
+                    store.cameraIsCenteredOnCurrentLocation
                         ? "현재 위치 중심"
                         : "사용자 이동 위치"
                 )
 
             controls
         }
-            .onChange(of: viewModel.cameraCommand) { _, command in
+            .onChange(of: store.cameraCommand) { _, command in
                 guard let command else { return }
-                session.expectCurrentLocationCamera(command.coordinate)
                 withAnimation(.easeInOut(duration: 0.8)) {
                     cameraPosition = .region(MKCoordinateRegion(
                         center: CLLocationCoordinate2D(
@@ -93,37 +68,20 @@ public struct MapFeatureView: View {
                         )
                     ))
                 }
-                // SwiftUI가 명령을 수락한 즉시 접근성 상태를 갱신하고,
-                // 이후 실제 카메라 callback이 사용자 이동 여부를 다시 확정합니다.
-                session.recordCamera(
-                    coordinate: command.coordinate,
-                    span: MapFeatureLocationPolicy.cameraSpan
-                )
             }
-            .onAppear {
-                session.startAutomatically(viewModel.moveToCurrentLocation)
-            }
-            .onDisappear { viewModel.cancel() }
-            .alert(item: Binding(
-                get: { viewModel.alert },
-                set: { _ in viewModel.dismissAlert() }
-            )) { alert in
-                Alert(
-                    title: Text("위치 조회 실패"),
-                    message: Text(alert.message),
-                    dismissButton: .default(Text("확인"))
-                )
-            }
+            .onAppear { store.send(.onAppear) }
+            .onDisappear { store.send(.onDisappear) }
+            .alert($store.scope(state: \.alert, action: \.alert))
     }
 
     @ViewBuilder
     private var alertAccessibilityStatus: some View {
-        if let alert = viewModel.alert {
+        if let failureKind = store.failureKind {
             Color.clear
                 .frame(width: 1, height: 1)
                 .accessibilityElement()
                 .accessibilityIdentifier(
-                    alert.kind == .timeout
+                    failureKind == .timeout
                         ? "mapkit-location-timeout-alert"
                         : "mapkit-location-error-alert"
                 )
@@ -132,7 +90,7 @@ public struct MapFeatureView: View {
 
     private var controls: some View {
         HStack(alignment: .bottom, spacing: 8) {
-            if let message = viewModel.authorizationMessage {
+            if let message = store.authorizationMessage {
                 Text(message)
                     .font(.caption)
                     .padding(10)
@@ -140,10 +98,10 @@ public struct MapFeatureView: View {
                     .accessibilityIdentifier("mapkit-location-authorization-message")
             }
             Button {
-                session.startManually(viewModel.moveToCurrentLocation)
+                store.send(.currentLocationButtonTapped)
             } label: {
                 Group {
-                    if viewModel.isLoading {
+                    if store.isLoading {
                         ProgressView().accessibilityIdentifier("mapkit-current-location-progress")
                     } else {
                         Image(systemName: "location.fill")
@@ -153,7 +111,7 @@ public struct MapFeatureView: View {
                 .background(.regularMaterial, in: Circle())
                 .accessibilityHidden(true)
             }
-            .disabled(viewModel.isLoading)
+            .disabled(store.isLoading)
             .accessibilityLabel("내 위치로 이동")
             .accessibilityIdentifier("mapkit-current-location-button")
             .buttonStyle(.plain)
@@ -168,5 +126,9 @@ public struct MapFeatureView: View {
 }
 
 #Preview {
-    MapFeatureView()
+    MapFeatureView(
+        store: Store(initialState: MapKitFeature.State()) {
+            MapKitFeature()
+        }
+    )
 }
