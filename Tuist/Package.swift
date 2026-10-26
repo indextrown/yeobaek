@@ -11,8 +11,25 @@ let packageSettings = PackageSettings(
         "RxCocoa": .framework,
         "RxRelay": .framework,
         "RxSwift": .framework,
+    ],
+    targetSettings: [
+        "MapboxCommonWrapper": .externalDeploymentTarget,
+        "MapboxCoreMapsWrapper": .externalDeploymentTarget,
+        "MapboxMaps": .externalDeploymentTarget,
+        "RxCocoa": .externalDeploymentTarget,
+        "RxCocoaRuntime": .externalDeploymentTarget,
+        "RxRelay": .externalDeploymentTarget,
+        "RxSwift": .externalDeploymentTarget,
+        "Turf": .externalDeploymentTarget,
     ]
 )
+
+extension Settings {
+    /// Xcode 27 iOS SDK의 최소 배포 버전(15.0)보다 낮게 선언된 외부 패키지를 앱 최소 버전에 맞춘다.
+    static var externalDeploymentTarget: Settings {
+        .settings(base: ["IPHONEOS_DEPLOYMENT_TARGET": "17.0"])
+    }
+}
 #endif
 
 let package = Package(
