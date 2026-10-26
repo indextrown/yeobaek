@@ -13,5 +13,6 @@ let workspace = Workspace(
         "Projects/Shared/ThirdParty",
         "Projects/Features/MapFeature",
         "Projects/Features/MapBoxFeature",
+        "Projects/Features/CrowdFeature",
     ]
 )
