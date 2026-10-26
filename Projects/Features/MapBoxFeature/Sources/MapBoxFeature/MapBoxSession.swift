@@ -1,10 +1,21 @@
+import Domain
 import Foundation
+import UIKit
 
 /// 앱 실행 중 Mapbox 카메라, 현재 위치 요청과 주입된 혼잡도 화면 상태를 유지합니다.
 @MainActor
 public final class MapBoxSession {
     /// 지도 전환 후에도 조회 결과를 유지할 혼잡도 화면 모델입니다.
     let crowdViewModel: MapBoxCrowdViewModel?
+
+    /// 지도 위에 기존 혼잡도 범례 패널을 표시할지 정합니다. 앱 홈처럼 다른 화면이 요약을 맡으면 `false`입니다.
+    let showsCrowdPanel: Bool
+
+    /// 화면 아래에서 내 위치 버튼까지의 거리입니다. 지도 위에 시트를 올리면 시트 높이만큼 키웁니다.
+    let controlsBottomInset: CGFloat
+
+    /// 사용자가 지도에서 장소 영역을 눌렀을 때 장소 코드를 전달합니다.
+    public var onSelectPlace: (@MainActor (Place.ID) -> Void)?
 
     private var didStartAutomatically = false
     public private(set) var requestCount = 0
@@ -17,11 +28,18 @@ public final class MapBoxSession {
     private var currentLocationTarget: MapBoxCoordinate?
     /// 위치 요청 상태와 선택적인 혼잡도 표시 기능을 함께 보관합니다.
     ///
-    /// - Parameter crowdViewModel: App 또는 Demo에서 조립한 혼잡도 모델입니다. `nil`이면 기존 지도만 표시합니다.
+    /// - Parameters:
+    ///   - crowdViewModel: App 또는 Demo에서 조립한 혼잡도 모델입니다. `nil`이면 기존 지도만 표시합니다.
+    ///   - showsCrowdPanel: 지도 위 혼잡도 범례 패널 표시 여부입니다.
+    ///   - controlsBottomInset: 화면 아래 안전 영역에서 내 위치 버튼까지의 거리입니다.
     public init(
-        crowdViewModel: MapBoxCrowdViewModel? = nil
+        crowdViewModel: MapBoxCrowdViewModel? = nil,
+        showsCrowdPanel: Bool = true,
+        controlsBottomInset: CGFloat = 68
     ) {
         self.crowdViewModel = crowdViewModel
+        self.showsCrowdPanel = showsCrowdPanel
+        self.controlsBottomInset = controlsBottomInset
     }
 
     /// 아직 자동 요청을 기록하지 않았다면 앱 수명에서 한 번만 기록합니다.

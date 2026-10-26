@@ -10,6 +10,9 @@ public final class MapBoxCrowdViewModel {
         /// 장소 코드로 혼잡도와 연결한 영역입니다.
         public let geometry: AreaGeometry
 
+        /// 라벨에 쓸 장소 정보입니다. 장소 목록을 받지 못했으면 `nil`입니다.
+        public let place: Place?
+
         /// 조회에 실패하거나 정보가 없으면 `.unknown`입니다.
         public let level: CongestionLevel
     }
@@ -60,6 +63,9 @@ public final class MapBoxCrowdViewModel {
     /// 앱 조립 계층에서 전달한 장소 경계입니다.
     private let areas: [AreaGeometry]
 
+    /// 장소 코드로 찾는 장소 이름과 라벨 좌표입니다.
+    private let placesByID: [Place.ID: Place]
+
     /// 구체적인 API나 목업 구현을 알지 못하는 조회 경계입니다.
     private let repository: any CrowdRepository
 
@@ -79,18 +85,22 @@ public final class MapBoxCrowdViewModel {
     ///
     /// - Parameters:
     ///   - areas: 고유 장소 코드와 닫힌 폴리곤을 포함하는 목록입니다.
+    ///   - places: 라벨에 쓸 장소 목록입니다. 비어 있으면 라벨을 표시하지 않습니다.
     ///   - repository: 각 장소의 혼잡도를 Domain Entity로 반환하는 저장소입니다.
     ///   - isMockData: 실제 경계나 관측값이 아닌 테스트 데이터이면 `true`입니다.
     public init(
         areas: [AreaGeometry],
+        places: [Place] = [],
         repository: any CrowdRepository,
         isMockData: Bool
     ) {
+        let placesByID = Dictionary(places.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
         self.areas = areas
+        self.placesByID = placesByID
         self.repository = repository
         self.isMockData = isMockData
         self.stateRelay = BehaviorRelay(value: State(
-            areas: areas.map { Area(geometry: $0, level: .unknown) },
+            areas: areas.map { Area(geometry: $0, place: placesByID[$0.placeID], level: .unknown) },
             isLoading: false,
             unavailableCount: 0
         ))
@@ -134,25 +144,36 @@ public final class MapBoxCrowdViewModel {
             unavailableCount: 0
         ))
 
-        loadTask = Task { @MainActor [weak self, areas, repository] in
-            var result: [Area] = []
+        loadTask = Task { @MainActor [weak self, areas, placesByID, repository] in
+            // 저장소가 동시 요청 수를 제한하므로 장소를 함께 요청하고, 도착하는 대로 조금씩 지도에 반영합니다.
+            var levels: [Place.ID: CongestionLevel] = [:]
             var unavailableCount = 0
-            for area in areas {
-                guard !Task.isCancelled else { return }
-                var level = CongestionLevel.unknown
-                do {
-                    let snapshot = try await repository.fetchSnapshot(for: area.placeID)
-                    if snapshot.placeID == area.placeID {
-                        level = snapshot.level
+            var completed = 0
+            /// 지금까지 받은 단계로 표시 목록을 만듭니다.
+            let currentAreas = {
+                areas.map { Area(geometry: $0, place: placesByID[$0.placeID], level: levels[$0.placeID] ?? .unknown) }
+            }
+            await withTaskGroup(of: (Place.ID, CongestionLevel?).self) { group in
+                for area in areas {
+                    group.addTask {
+                        let snapshot = try? await repository.fetchSnapshot(for: area.placeID)
+                        return (area.placeID, snapshot?.placeID == area.placeID ? snapshot?.level : nil)
+                    }
+                }
+                for await (placeID, level) in group {
+                    guard !Task.isCancelled else { return }
+                    if let level {
+                        levels[placeID] = level
                     } else {
                         unavailableCount += 1
                     }
-                } catch {
-                    unavailableCount += 1
+                    completed += 1
+                    if completed % 12 == 0, completed < areas.count {
+                        self?.stateRelay.accept(State(areas: currentAreas(), isLoading: true, unavailableCount: 0))
+                    }
                 }
-                guard !Task.isCancelled else { return }
-                result.append(Area(geometry: area, level: level))
             }
+            let result = currentAreas()
 
             guard !Task.isCancelled, let self else { return }
             self.loadTask = nil

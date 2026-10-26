@@ -134,6 +134,10 @@ public final class MapBoxFeatureViewController: UIViewController {
     /// 목업 안내, 혼잡도 범례와 전체 영역 보기 버튼을 구성합니다.
     private func configureCrowdOverlay() {
         guard let crowdViewModel = session.crowdViewModel else { return }
+        guard session.showsCrowdPanel else {
+            observeStyleForCrowdRenderer()
+            return
+        }
 
         let titleLabel = UILabel()
         titleLabel.text = crowdViewModel.isMockData ? "목업 혼잡도" : "지역 혼잡도"
@@ -204,6 +208,11 @@ public final class MapBoxFeatureViewController: UIViewController {
             .bind(onNext: { [weak self] in self?.showCrowdAreas() })
             .disposed(by: disposeBag)
 
+        observeStyleForCrowdRenderer()
+    }
+
+    /// 지도 스타일이 준비되면 혼잡도 레이어를 만들도록 연결합니다.
+    private func observeStyleForCrowdRenderer() {
         mapView.mapboxMap.onStyleLoaded
             .observe { [weak self] _ in
                 Task { @MainActor [weak self] in self?.prepareCrowdRenderer() }
@@ -231,7 +240,7 @@ public final class MapBoxFeatureViewController: UIViewController {
     /// 지도 스타일이 준비되면 마지막으로 받은 혼잡도를 표시합니다.
     private func prepareCrowdRenderer() {
         if crowdRenderer == nil {
-            crowdRenderer = MapBoxCrowdRenderer(mapView: mapView)
+            crowdRenderer = MapBoxCrowdRenderer(mapView: mapView, onSelectPlace: session.onSelectPlace)
         }
         if let crowdState {
             renderCrowd(crowdState)
@@ -284,6 +293,8 @@ public final class MapBoxFeatureViewController: UIViewController {
         mapView.translatesAutoresizingMaskIntoConstraints = false
         mapView.accessibilityIdentifier = "mapbox-map"
         mapView.location.options.puckType = .puck2D(.makeDefault())
+        // 앱 홈은 위쪽에 검색창을 올리므로 축척 막대가 겹치지 않게 숨깁니다.
+        mapView.ornaments.options.scaleBar.visibility = .hidden
         view.addSubview(mapView)
         NSLayoutConstraint.activate([
             mapView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -333,7 +344,10 @@ public final class MapBoxFeatureViewController: UIViewController {
             locationButton.widthAnchor.constraint(equalToConstant: 52),
             locationButton.heightAnchor.constraint(equalToConstant: 52),
             locationButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            locationButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -68),
+            locationButton.bottomAnchor.constraint(
+                equalTo: view.safeAreaLayoutGuide.bottomAnchor,
+                constant: -session.controlsBottomInset
+            ),
             authorizationLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 250),
             authorizationLabel.leadingAnchor.constraint(
                 equalTo: authorizationBackgroundView.contentView.leadingAnchor,
@@ -405,7 +419,9 @@ public final class MapBoxFeatureViewController: UIViewController {
         mapView.mapboxMap.onCameraChanged
             .observe { [weak self] _ in
                 Task { @MainActor [weak self] in
-                    self?.recordVisibleCamera()
+                    guard let self else { return }
+                    self.crowdRenderer?.updateLabelVisibility(zoom: self.mapView.mapboxMap.cameraState.zoom)
+                    self.recordVisibleCamera()
                 }
             }
             .store(in: &mapboxCancelables)
