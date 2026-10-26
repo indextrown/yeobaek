@@ -157,3 +157,5 @@ Projects/
 ### 기술 조사
 
 - [실시간 혼잡도 API 조사 및 비교](docs/research/실시간-혼잡도-API-조사.md)
+- [혼잡도 API 목록 및 요금](docs/research/혼잡도-API-목록-및-요금.md)
+- [서울 실시간 도시데이터 응답 항목](docs/research/서울-실시간-도시데이터-응답-항목.md)
