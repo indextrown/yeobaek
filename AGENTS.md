@@ -43,6 +43,7 @@
 
 - MVVM의 입력과 출력은 가능한 한 `Input`과 `Output`으로 명시하고, ViewController는 이벤트 전달과 렌더링에 집중한다.
 - UI 이벤트는 RxCocoa의 `ControlEvent`, 화면 출력은 `Driver` 또는 `Signal`을 우선 검토한다.
+- SwiftUI 하위 화면은 `some View`를 반환하는 계산 속성이나 메서드로 만들지 않고 별도 `View` 구조체로 분리한다. 하위 구조체에는 Store 대신 필요한 값과 액션 클로저만 전달한다.
 - API 응답 DTO를 Feature에 직접 노출하지 않는다. Data에서 Domain Entity로 변환한다.
 - API 키를 Swift 코드에 직접 작성하지 않는다. xcconfig와 Info.plist 치환을 거쳐 `AppConfiguration`으로 읽는다.
 - GitHub Issue는 선택 사항이며 브랜치 생성이나 Pull Request의 필수 조건이 아니다. 사용자가 요청하지 않으면 Issue를 만들지 않고 작업 브랜치에서 바로 Pull Request를 생성한다.
