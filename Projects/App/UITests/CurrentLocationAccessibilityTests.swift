@@ -1,6 +1,6 @@
 import XCTest
 
-/// 두 지도 화면이 합의된 내 위치 접근성 계약을 제공하는지 검증합니다.
+/// 혼잡도 홈의 지도, 요약 시트, 목록·상세 이동과 내 위치 접근성 계약을 검증합니다.
 @MainActor
 final class CurrentLocationAccessibilityTests: XCTestCase {
     private var app: XCUIApplication!
@@ -9,48 +9,25 @@ final class CurrentLocationAccessibilityTests: XCTestCase {
         continueAfterFailure = false
         app = XCUIApplication()
         app.launchEnvironment["UITEST_LOCATION_SCENARIO"] = "success"
+        app.launchEnvironment["UITEST_CROWD_SCENARIO"] = "sample"
     }
 
     override func tearDownWithError() throws {
         app = nil
     }
 
-    func testInitialProviderIsMapKitAndCurrentLocationControlIsAccessible() throws {
+    func testHomeShowsSummarySheetAndMapboxLocationControl() throws {
         app.launch()
-        let mapKitSegment = app.buttons["MapKit"]
-        let currentLocationButton = app.buttons["mapkit-current-location-button"]
-
-        XCTAssertTrue(mapKitSegment.waitForExistence(timeout: 10))
-        XCTAssertTrue(mapKitSegment.isSelected)
-        XCTAssertTrue(app.descendants(matching: .any)["mapkit-map"].waitForExistence(timeout: 10))
-        XCTAssertTrue(currentLocationButton.waitForExistence(timeout: 10))
-        XCTAssertEqual(currentLocationButton.label, "내 위치로 이동")
-        try waitUntilEnabled(currentLocationButton)
-        XCTAssertTrue(currentLocationButton.isEnabled)
-
-        let map = app.descendants(matching: .any)["mapkit-map"]
-        try waitUntilValue(map, equals: "현재 위치 중심")
-        map.swipeLeft()
-        try waitUntilValue(map, equals: "사용자 이동 위치")
-        currentLocationButton.tap()
-        try waitUntilEnabled(currentLocationButton)
-        try waitUntilValue(map, equals: "현재 위치 중심")
-    }
-
-    func testSwitchingToMapboxExposesItsCurrentLocationControlWhenTokenIsValid() throws {
-        app.launch()
-        let mapboxSegment = app.buttons["Mapbox"]
-
-        XCTAssertTrue(mapboxSegment.waitForExistence(timeout: 10))
-        mapboxSegment.tap()
-        XCTAssertTrue(mapboxSegment.isSelected)
-
+        let sheet = app.descendants(matching: .any)["crowd-summary-sheet"]
         let currentLocationButton = app.buttons["mapbox-current-location-button"]
+
+        XCTAssertTrue(sheet.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["서울 주요 121곳"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.descendants(matching: .any)["mapbox-map"].waitForExistence(timeout: 10))
         XCTAssertTrue(currentLocationButton.waitForExistence(timeout: 10))
         XCTAssertEqual(currentLocationButton.label, "내 위치로 이동")
         try waitUntilEnabled(currentLocationButton)
-        XCTAssertTrue(currentLocationButton.isEnabled)
+        XCTAssertLessThan(currentLocationButton.frame.maxY, sheet.frame.minY, "내 위치 버튼이 홈 시트에 가려졌습니다.")
         assertDoesNotOverlapAnotherButton(currentLocationButton)
 
         let map = app.descendants(matching: .any)["mapbox-map"]
@@ -62,91 +39,52 @@ final class CurrentLocationAccessibilityTests: XCTestCase {
         try waitUntilValue(map, equals: "현재 위치 중심")
     }
 
-    func testMapboxWithoutTokenKeepsGuideAndDoesNotExposeLocationControl() {
+    func testShowAllOpensListAndPlaceDetail() {
+        app.launch()
+        let showAll = app.buttons["crowd-show-all-button"]
+
+        XCTAssertTrue(showAll.waitForExistence(timeout: 10))
+        showAll.tap()
+        XCTAssertTrue(app.navigationBars["장소 목록"].waitForExistence(timeout: 10))
+
+        let searchField = app.textFields["crowd-list-search-field"]
+        XCTAssertTrue(searchField.waitForExistence(timeout: 10))
+        searchField.tap()
+        searchField.typeText("광화문")
+        let row = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "광화문·덕수궁")).firstMatch
+        XCTAssertTrue(row.waitForExistence(timeout: 10))
+        row.tap()
+
+        XCTAssertTrue(app.navigationBars["광화문·덕수궁"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["앞으로 12시간"].waitForExistence(timeout: 10))
+    }
+
+    func testMapboxWithoutTokenKeepsGuideAndSummarySheet() {
         app.launchEnvironment["UITEST_MAPBOX_ACCESS_TOKEN"] = ""
         app.launch()
-        let mapboxSegment = app.buttons["Mapbox"]
-
-        XCTAssertTrue(mapboxSegment.waitForExistence(timeout: 10))
-        mapboxSegment.tap()
 
         let tokenGuide = app.staticTexts["Mapbox 토큰이 필요해요"]
         XCTAssertTrue(tokenGuide.waitForExistence(timeout: 10))
-
+        XCTAssertTrue(app.descendants(matching: .any)["crowd-summary-sheet"].exists)
         XCTAssertFalse(app.buttons["mapbox-current-location-button"].exists)
         XCTAssertFalse(app.progressIndicators["mapbox-current-location-progress"].exists)
         XCTAssertFalse(app.staticTexts["mapbox-location-authorization-message"].exists)
     }
 
-    func testCurrentLocationControlsUseTheSamePlacement() throws {
+    func testReturningFromListDoesNotRestartAutomaticLocationRequest() throws {
         app.launch()
-        let mapKitButton = app.buttons["mapkit-current-location-button"]
-
-        XCTAssertTrue(mapKitButton.waitForExistence(timeout: 10))
-        try waitUntilEnabled(mapKitButton)
-        let mapKitFrame = mapKitButton.frame
-
-        let mapboxSegment = app.buttons["Mapbox"]
-        XCTAssertTrue(mapboxSegment.waitForExistence(timeout: 10))
-        mapboxSegment.tap()
-
-        let mapboxButton = app.buttons["mapbox-current-location-button"]
-        XCTAssertTrue(mapboxButton.waitForExistence(timeout: 10))
-        try waitUntilEnabled(mapboxButton)
-        let mapboxFrame = mapboxButton.frame
-
-        XCTAssertEqual(mapKitFrame.minX, mapboxFrame.minX, accuracy: 1)
-        XCTAssertEqual(mapKitFrame.minY, mapboxFrame.minY, accuracy: 1)
-        XCTAssertEqual(mapKitFrame.width, mapboxFrame.width, accuracy: 1)
-        XCTAssertEqual(mapKitFrame.height, mapboxFrame.height, accuracy: 1)
-    }
-
-    func testReturningToMapKitDoesNotRestartAutomaticLocationRequest() throws {
-        app.launchEnvironment["UITEST_MAPBOX_ACCESS_TOKEN"] = ""
-        app.launch()
-        let mapKitSegment = app.buttons["MapKit"]
-        let mapboxSegment = app.buttons["Mapbox"]
-        let currentLocationButton = app.buttons["mapkit-current-location-button"]
-
-        XCTAssertTrue(currentLocationButton.waitForExistence(timeout: 10))
-        try waitUntilEnabled(currentLocationButton)
-        let map = app.descendants(matching: .any)["mapkit-map"]
-        map.swipeLeft()
-        try waitUntilValue(map, equals: "사용자 이동 위치")
-
-        mapboxSegment.tap()
-        XCTAssertTrue(mapboxSegment.isSelected)
-        mapKitSegment.tap()
-
-        XCTAssertTrue(mapKitSegment.isSelected)
-        XCTAssertTrue(currentLocationButton.waitForExistence(timeout: 10))
-        XCTAssertTrue(currentLocationButton.isEnabled)
-        try assertRemainsAbsent(
-            app.progressIndicators["mapkit-current-location-progress"],
-            duration: 1
-        )
-        XCTAssertEqual(map.value as? String, "사용자 이동 위치")
-    }
-
-    func testReturningToMapboxDoesNotRestartAutomaticLocationRequest() throws {
-        app.launch()
-        let mapKitSegment = app.buttons["MapKit"]
-        let mapboxSegment = app.buttons["Mapbox"]
         let currentLocationButton = app.buttons["mapbox-current-location-button"]
 
-        XCTAssertTrue(mapboxSegment.waitForExistence(timeout: 10))
-        mapboxSegment.tap()
         XCTAssertTrue(currentLocationButton.waitForExistence(timeout: 10))
         try waitUntilEnabled(currentLocationButton)
         let map = app.descendants(matching: .any)["mapbox-map"]
         map.swipeLeft()
         try waitUntilValue(map, equals: "사용자 이동 위치")
 
-        mapKitSegment.tap()
-        XCTAssertTrue(mapKitSegment.isSelected)
-        mapboxSegment.tap()
+        app.buttons["crowd-show-all-button"].tap()
+        XCTAssertTrue(app.navigationBars["장소 목록"].waitForExistence(timeout: 10))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
 
-        XCTAssertTrue(mapboxSegment.isSelected)
         XCTAssertTrue(currentLocationButton.waitForExistence(timeout: 10))
         XCTAssertTrue(currentLocationButton.isEnabled)
         try assertRemainsAbsent(

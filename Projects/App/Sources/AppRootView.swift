@@ -1,52 +1,41 @@
 import ComposableArchitecture
-import Data
-import SwiftUI
+import CrowdFeature
 import MapBoxFeature
-import MapFeature
+import SwiftUI
 
+/// Mapbox 지도 위에 혼잡도 홈 시트를 올리고 목록·상세 이동을 연결하는 루트 화면입니다.
 struct AppRootView: View {
-    private enum MapProvider: String, CaseIterable, Identifiable {
-        case mapKit = "MapKit"
-        case mapbox = "Mapbox"
+    @State private var store: StoreOf<CrowdHomeFeature>
+    @State private var mapSession: MapBoxSession
 
-        var id: Self { self }
-    }
-
-    @State private var selectedProvider: MapProvider = .mapKit
-    @State private var mapKitStore = Store(initialState: MapKitFeature.State()) {
-        MapKitFeature()
-    }
-    @State private var mapboxSession = MapBoxSession(
-        crowdViewModel: MapBoxCrowdViewModel(
-            areas: CrowdMockData.areas,
-            repository: MockCrowdRepository(),
-            isMockData: true
+    /// 저장소를 조립해 홈 Store와 지도 세션을 만듭니다.
+    init() {
+        let dependencies = AppDependencies.make()
+        let store = Store(initialState: CrowdHomeFeature.State()) {
+            CrowdHomeFeature()
+        } withDependencies: {
+            $0.crowdClient = dependencies.crowdClient
+        }
+        let session = MapBoxSession(
+            crowdViewModel: MapBoxCrowdViewModel(
+                areas: dependencies.catalog.areas,
+                places: dependencies.catalog.places,
+                repository: dependencies.crowdRepository,
+                isMockData: false
+            ),
+            showsCrowdPanel: false,
+            controlsBottomInset: CrowdHomeLayout.mapControlsBottomInset
         )
-    )
+        session.onSelectPlace = { placeID in
+            store.send(.placeTapped(placeID))
+        }
+        _store = State(initialValue: store)
+        _mapSession = State(initialValue: session)
+    }
 
     var body: some View {
-        ZStack(alignment: .top) {
-            Group {
-                switch selectedProvider {
-                case .mapKit:
-                    MapFeatureView(store: mapKitStore)
-                case .mapbox:
-                    MapBoxFeatureView(session: mapboxSession)
-                }
-            }
-
-            Picker("지도 제공자", selection: $selectedProvider) {
-                ForEach(MapProvider.allCases) { provider in
-                    Text(provider.rawValue)
-                        .tag(provider)
-                        .accessibilityIdentifier(provider.rawValue)
-                }
-            }
-            .pickerStyle(.segmented)
-            .padding(8)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
+        CrowdHomeView(store: store) {
+            MapBoxFeatureView(session: mapSession)
         }
     }
 }
