@@ -39,16 +39,11 @@ public enum MapFeatureLocationError: Error, Equatable, Sendable {
     case timedOut
 }
 
+/// Core Location의 권한과 단일 위치 조회를 async 함수로 감싼 제공자입니다.
+///
+/// 앱에서는 `LocationClient.liveValue`를 통해서만 사용합니다.
 @MainActor
-public protocol MapLocationProviding: AnyObject, Sendable {
-    func authorizationStatus() -> MapFeatureAuthorization
-    func requestAuthorization() async throws -> MapFeatureAuthorization
-    func requestLocation() async throws -> MapFeatureCoordinate
-    func cancel()
-}
-
-@MainActor
-public final class CoreMapLocationProvider: NSObject, MapLocationProviding, CLLocationManagerDelegate {
+public final class CoreMapLocationProvider: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     private var authorizationContinuation: CheckedContinuation<MapFeatureAuthorization, Error>?
     private var locationContinuation: CheckedContinuation<MapFeatureCoordinate, Error>?
@@ -205,7 +200,7 @@ public final class CoreMapLocationProvider: NSObject, MapLocationProviding, CLLo
     /// 시스템 권한 상태를 Feature 상태로 변환합니다.
     ///
     /// - Parameter status: Core Location 권한 상태입니다.
-    /// - Returns: UI와 ViewModel에서 사용하는 권한 상태입니다.
+    /// - Returns: UI와 Reducer에서 사용하는 권한 상태입니다.
     nonisolated static func authorization(
         from status: CLAuthorizationStatus
     ) -> MapFeatureAuthorization {

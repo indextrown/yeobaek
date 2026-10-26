@@ -18,6 +18,7 @@
 | --- | --- | --- |
 | 지도 | MapKit, Mapbox | 두 지도 방식으로 장소별 혼잡도 시각화 |
 | UI 프레임워크 | UIKit, SwiftUI | MapBoxFeature는 UIKit + RxSwift로 구현하고, MapFeature만 SwiftUI로 구현 |
+| SwiftUI 상태 관리 | The Composable Architecture (TCA) | SwiftUI 기반 MapFeature의 상태, 액션, 의존성 관리 |
 | 앱 아키텍처 | MVVM + Clean Architecture + RxSwift | 화면 상태, 비즈니스 규칙, 데이터 구현 분리 |
 | 프로젝트 관리 | Tuist | Xcode 프로젝트 생성 및 모듈 의존성 관리 |
 | 로컬 DB | GRDB | SQLite 기반 장소와 혼잡도 데이터 저장 및 조회 |
@@ -146,6 +147,7 @@ Projects/
 ### 아키텍처
 
 - [MVVM, Clean Architecture, RxSwift 적용하기](docs/architecture/mvvm-clean-architecture-rxswift.md)
+- [SwiftUI Feature에 TCA 적용하기](docs/architecture/tca.md)
 - [Static Framework와 Dynamic Framework 이해하기](docs/architecture/static-and-dynamic-frameworks.md)
 
 ### 개발 가이드

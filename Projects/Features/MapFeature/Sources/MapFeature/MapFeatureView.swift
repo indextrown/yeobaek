@@ -1,149 +1,104 @@
+import ComposableArchitecture
 import MapKit
 import SwiftUI
 
 public struct MapFeatureView: View {
-    @State private var session: MapFeatureSession
-    @State private var viewModel: MapFeatureViewModel
+    @Bindable private var store: StoreOf<MapKitFeature>
     @State private var cameraPosition: MapCameraPosition
-
-    /// 앱 수명 자동 실행 상태와 함께 MapKit 화면을 만듭니다.
+    
+    /// 앱 실행 동안 유지되는 Store로 MapKit 화면을 만듭니다.
     ///
-    /// - Parameters:
-    ///   - session: 앱 실행 중 자동 요청 여부를 보관하는 상태입니다.
-    ///   - viewModel: 위치 요청과 화면 상태를 관리하는 ViewModel입니다.
+    /// - Parameter store: 위치 요청과 카메라 상태를 관리하는 Store입니다.
     @MainActor
     public init(
-        session: MapFeatureSession,
-        viewModel: MapFeatureViewModel
+        store: StoreOf<MapKitFeature>
     ) {
-        _session = State(initialValue: session)
-        _viewModel = State(initialValue: viewModel)
+        self.store = store
         _cameraPosition = State(initialValue: .region(MKCoordinateRegion(
             center: CLLocationCoordinate2D(
-                latitude: session.cameraCoordinate.latitude,
-                longitude: session.cameraCoordinate.longitude
+                latitude: store.cameraCoordinate.latitude,
+                longitude: store.cameraCoordinate.longitude
             ),
             span: MKCoordinateSpan(
-                latitudeDelta: session.cameraSpan,
-                longitudeDelta: session.cameraSpan
+                latitudeDelta: store.cameraSpan,
+                longitudeDelta: store.cameraSpan
             )
         )))
     }
-
-    /// 앱 수명 자동 실행 상태와 기본 위치 ViewModel로 MapKit 화면을 만듭니다.
-    ///
-    /// - Parameter session: 앱 실행 중 자동 요청 여부를 보관하는 상태입니다.
-    @MainActor
-    public init(
-        session: MapFeatureSession
-    ) {
-        self.init(
-            session: session,
-            viewModel: MapFeatureViewModel()
-        )
-    }
-
-    @MainActor
-    public init() {
-        self.init(session: MapFeatureSession())
-    }
-
+    
     public var body: some View {
         ZStack(alignment: .bottomTrailing) {
             Map(position: $cameraPosition) {
                 UserAnnotation()
             }
-                .mapStyle(.standard(elevation: .realistic))
-                .ignoresSafeArea()
-                .onMapCameraChange(frequency: .onEnd) { context in
-                    let coordinate = MapFeatureCoordinate(
-                        latitude: context.region.center.latitude,
-                        longitude: context.region.center.longitude
+            .mapStyle(.standard(elevation: .realistic))
+            .ignoresSafeArea()
+            .onMapCameraChange(frequency: .onEnd) { context in
+                let coordinate = MapFeatureCoordinate(
+                    latitude: context.region.center.latitude,
+                    longitude: context.region.center.longitude
+                )
+                let span = context.region.span.latitudeDelta
+                // 지도 갱신 도중 상태를 바꾸지 않도록 다음 main actor 턴에 전달합니다.
+                Task { @MainActor in
+                    store.send(.cameraChanged(coordinate, span: span))
+                }
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityIdentifier("mapkit-map")
+            .accessibilityValue(
+                store.cameraIsCenteredOnCurrentLocation
+                ? "현재 위치 중심"
+                : "사용자 이동 위치"
+            )
+            
+            CurrentLocationControls(
+                authorizationMessage: store.authorizationMessage,
+                isLoading: store.isLoading,
+                failureKind: store.failureKind,
+                onCurrentLocationTap: { store.send(.currentLocationButtonTapped) }
+            )
+        }
+        .onChange(of: store.cameraCommand) { _, command in
+            guard let command else { return }
+            withAnimation(.easeInOut(duration: 0.8)) {
+                cameraPosition = .region(MKCoordinateRegion(
+                    center: CLLocationCoordinate2D(
+                        latitude: command.coordinate.latitude,
+                        longitude: command.coordinate.longitude
+                    ),
+                    span: MKCoordinateSpan(
+                        latitudeDelta: MapFeatureLocationPolicy.cameraSpan,
+                        longitudeDelta: MapFeatureLocationPolicy.cameraSpan
                     )
-                    let span = context.region.span.latitudeDelta
-                    Task { @MainActor in
-                        session.recordCamera(
-                            coordinate: coordinate,
-                            span: span
-                        )
-                    }
-                }
-                .accessibilityElement(children: .ignore)
-                .accessibilityIdentifier("mapkit-map")
-                .accessibilityValue(
-                    session.cameraIsCenteredOnCurrentLocation
-                        ? "현재 위치 중심"
-                        : "사용자 이동 위치"
-                )
-
-            controls
+                ))
+            }
         }
-            .onChange(of: viewModel.cameraCommand) { _, command in
-                guard let command else { return }
-                session.expectCurrentLocationCamera(command.coordinate)
-                withAnimation(.easeInOut(duration: 0.8)) {
-                    cameraPosition = .region(MKCoordinateRegion(
-                        center: CLLocationCoordinate2D(
-                            latitude: command.coordinate.latitude,
-                            longitude: command.coordinate.longitude
-                        ),
-                        span: MKCoordinateSpan(
-                            latitudeDelta: MapFeatureLocationPolicy.cameraSpan,
-                            longitudeDelta: MapFeatureLocationPolicy.cameraSpan
-                        )
-                    ))
-                }
-                // SwiftUI가 명령을 수락한 즉시 접근성 상태를 갱신하고,
-                // 이후 실제 카메라 callback이 사용자 이동 여부를 다시 확정합니다.
-                session.recordCamera(
-                    coordinate: command.coordinate,
-                    span: MapFeatureLocationPolicy.cameraSpan
-                )
-            }
-            .onAppear {
-                session.startAutomatically(viewModel.moveToCurrentLocation)
-            }
-            .onDisappear { viewModel.cancel() }
-            .alert(item: Binding(
-                get: { viewModel.alert },
-                set: { _ in viewModel.dismissAlert() }
-            )) { alert in
-                Alert(
-                    title: Text("위치 조회 실패"),
-                    message: Text(alert.message),
-                    dismissButton: .default(Text("확인"))
-                )
-            }
+        .onAppear { store.send(.onAppear) }
+        .onDisappear { store.send(.onDisappear) }
+        .alert($store.scope(state: \.alert, action: \.alert))
     }
+}
 
-    @ViewBuilder
-    private var alertAccessibilityStatus: some View {
-        if let alert = viewModel.alert {
-            Color.clear
-                .frame(width: 1, height: 1)
-                .accessibilityElement()
-                .accessibilityIdentifier(
-                    alert.kind == .timeout
-                        ? "mapkit-location-timeout-alert"
-                        : "mapkit-location-error-alert"
-                )
-        }
-    }
+/// 권한 안내 문구와 내 위치 버튼을 지도 오른쪽 아래에 배치합니다.
+private struct CurrentLocationControls: View {
+    let authorizationMessage: String?
+    let isLoading: Bool
+    let failureKind: MapKitFeature.State.FailureKind?
+    let onCurrentLocationTap: () -> Void
 
-    private var controls: some View {
+    var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
-            if let message = viewModel.authorizationMessage {
-                Text(message)
+            if let authorizationMessage {
+                Text(authorizationMessage)
                     .font(.caption)
                     .padding(10)
                     .background(.regularMaterial, in: Capsule())
                     .accessibilityIdentifier("mapkit-location-authorization-message")
             }
-            Button {
-                session.startManually(viewModel.moveToCurrentLocation)
-            } label: {
+            Button(action: onCurrentLocationTap) {
                 Group {
-                    if viewModel.isLoading {
+                    if isLoading {
                         ProgressView().accessibilityIdentifier("mapkit-current-location-progress")
                     } else {
                         Image(systemName: "location.fill")
@@ -153,7 +108,7 @@ public struct MapFeatureView: View {
                 .background(.regularMaterial, in: Circle())
                 .accessibilityHidden(true)
             }
-            .disabled(viewModel.isLoading)
+            .disabled(isLoading)
             .accessibilityLabel("내 위치로 이동")
             .accessibilityIdentifier("mapkit-current-location-button")
             .buttonStyle(.plain)
@@ -161,12 +116,33 @@ public struct MapFeatureView: View {
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 68)
-        .overlay { alertAccessibilityStatus }
+        .overlay { LocationFailureAccessibilityMarker(failureKind: failureKind) }
         .zIndex(1)
     }
+}
 
+/// UI 테스트가 위치 조회 실패 종류를 확인할 수 있도록 보이지 않는 접근성 요소를 둡니다.
+private struct LocationFailureAccessibilityMarker: View {
+    let failureKind: MapKitFeature.State.FailureKind?
+
+    var body: some View {
+        if let failureKind {
+            Color.clear
+                .frame(width: 1, height: 1)
+                .accessibilityElement()
+                .accessibilityIdentifier(
+                    failureKind == .timeout
+                        ? "mapkit-location-timeout-alert"
+                        : "mapkit-location-error-alert"
+                )
+        }
+    }
 }
 
 #Preview {
-    MapFeatureView()
+    MapFeatureView(
+        store: Store(initialState: MapKitFeature.State()) {
+            MapKitFeature()
+        }
+    )
 }

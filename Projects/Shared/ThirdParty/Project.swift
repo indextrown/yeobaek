@@ -11,6 +11,7 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             dependencies: [
+                .external(name: "ComposableArchitecture"),
                 .external(name: "MapboxMaps"),
                 .external(name: "RxCocoa"),
                 .external(name: "RxRelay"),

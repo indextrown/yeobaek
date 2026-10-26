@@ -9,7 +9,7 @@ description: YeobaekApp 진입부터 MapKit과 Mapbox 화면을 선택하고 세
 
 Yeobaek은 SwiftUI App 생명주기를 사용한다. `YeobaekApp`이 `AppRootView`를 만들고, 루트 화면이 지도 제공자 선택과 두 지도 Session의 생명주기를 관리한다. 앱 시작, 루트 화면, 지도 전환 또는 전역 초기화를 바꿀 때 이 흐름을 먼저 확인한다.
 
-현재 App 진입점과 지도 전환 컨테이너는 SwiftUI지만 제품 Feature의 UI 기준과는 구분한다. `MapFeature`만 SwiftUI 화면이며, `MapBoxFeature`의 실제 화면은 UIKit + RxSwift + MVVM으로 구현한다. `MapBoxFeatureView`는 UIKit 화면을 현재 SwiftUI App 계층에 연결하는 래퍼다.
+현재 App 진입점과 지도 전환 컨테이너는 SwiftUI지만 제품 Feature의 UI 기준과는 구분한다. `MapFeature`만 SwiftUI + TCA 화면이며, `MapBoxFeature`의 실제 화면은 UIKit + RxSwift + MVVM으로 구현한다. `MapBoxFeatureView`는 UIKit 화면을 현재 SwiftUI App 계층에 연결하는 래퍼다.
 
 ## 시작 순서
 
@@ -18,7 +18,7 @@ Yeobaek은 SwiftUI App 생명주기를 사용한다. `YeobaekApp`이 `AppRootVie
 | 1 | `YeobaekApp` | `@main` 진입점으로 실행된다. |
 | 2 | `WindowGroup` | 앱 윈도에 `AppRootView`를 생성한다. |
 | 3 | `AppRootView` | 기본 지도 제공자를 `MapKit`으로 설정한다. |
-| 4 | `AppRootView` | `MapFeatureSession`과 목업 혼잡도 ViewModel을 주입한 `MapBoxSession`을 `@State`로 생성해 화면 갱신 중에도 유지한다. |
+| 4 | `AppRootView` | `MapKitFeature` Store와 목업 혼잡도 ViewModel을 주입한 `MapBoxSession`을 `@State`로 생성해 화면 갱신 중에도 유지한다. |
 | 5 | 지도 선택 switch | 선택값에 따라 `MapFeatureView` 또는 `MapBoxFeatureView`를 표시한다. |
 | 6 | 상단 Picker | 사용자가 MapKit과 Mapbox를 바꾸면 같은 루트 안에서 표시할 Feature를 전환한다. |
 
@@ -27,7 +27,7 @@ UIApplication
 └─ YeobaekApp
    └─ WindowGroup
       └─ AppRootView
-         ├─ MapProvider.mapKit ──> MapFeatureView(MapFeatureSession)
+         ├─ MapProvider.mapKit ──> MapFeatureView(StoreOf<MapKitFeature>)
          ├─ MapProvider.mapbox ──> MapBoxFeatureView(MapBoxSession)
          └─ Segmented Picker
 ```
@@ -37,13 +37,13 @@ UIApplication
 | 객체 | 책임 | 생명주기 소유자 |
 | --- | --- | --- |
 | `YeobaekApp` | 앱 진입과 최초 Scene 구성 | SwiftUI App 런타임 |
-| `AppRootView` | 지도 제공자 선택, Feature 전환, Session 보관 | `WindowGroup` |
-| `MapFeatureSession` | MapKit 화면에서 유지해야 하는 상태와 동작 | `AppRootView`의 `@State` |
+| `AppRootView` | 지도 제공자 선택, Feature 전환, Store와 Session 보관 | `WindowGroup` |
+| `StoreOf<MapKitFeature>` | MapKit 화면의 자동 위치 요청 여부, 요청 상태, 마지막 카메라 보관 | `AppRootView`의 `@State` |
 | `MapBoxSession` | 마지막 카메라, 자동 위치 요청 여부와 혼잡도 ViewModel 보관 | `AppRootView`의 `@State` |
-| `MapFeatureView` | 유일한 SwiftUI Feature인 MapKit 지도 UI | `AppRootView` |
+| `MapFeatureView` | 유일한 SwiftUI + TCA Feature인 MapKit 지도 UI | `AppRootView` |
 | `MapBoxFeatureView` | UIKit + RxSwift 기반 Mapbox 화면을 SwiftUI App 계층에 연결하는 래퍼 | `AppRootView` |
 
-지도 제공자를 전환해도 두 Session 인스턴스는 `AppRootView`에 남는다. 화면 내부 상태를 전환할 때마다 새로 시작해야 한다면 Session의 소유 위치와 초기화 시점을 함께 변경해야 한다.
+지도 제공자를 전환해도 MapKit Store와 Mapbox Session 인스턴스는 `AppRootView`에 남는다. 화면 내부 상태를 전환할 때마다 새로 시작해야 한다면 Store·Session의 소유 위치와 초기화 시점을 함께 변경해야 한다.
 
 ## 목업 혼잡도 조립
 
@@ -57,7 +57,7 @@ UIApplication
 
 `MapBoxFeatureViewController`는 기본 ViewModel을 만들 때 `MapboxPuckLocationProvider`를 주입한다. 이 제공자는 지도 위치 점과 같은 `MapView.location`의 최근 좌표와 `onLocationChange`를 사용한다. 위치 점이 뒤늦게 나타나도 진행 중인 이동 요청에 좌표가 전달되며, 별도의 Core Location 좌표 조회를 기다리지 않는다. `CoreMapboxLocationProvider`는 이 경로에서 권한 확인과 요청만 담당한다.
 
-MapKit의 `CoreMapLocationProvider`는 최근 좌표가 있으면 재사용하고, 없으면 `startUpdatingLocation()`으로 첫 유효한 위치를 받는다. 요청이 끝나거나 취소되면 위치 갱신을 중단한다. 일시적인 `locationUnknown`은 기존 제한 시간 안에서 다음 갱신을 기다린다.
+MapKit 화면은 `MapKitFeature`가 `LocationClient` 의존성으로 권한과 위치를 요청한다. `LocationClient.liveValue`가 감싼 `CoreMapLocationProvider`는 최근 좌표가 있으면 재사용하고, 없으면 `startUpdatingLocation()`으로 첫 유효한 위치를 받는다. 요청이 끝나거나 취소되면 위치 갱신을 중단한다. 일시적인 `locationUnknown`은 기존 제한 시간 안에서 다음 갱신을 기다린다.
 
 두 제공자는 측정 후 30초가 지난 좌표를 재사용하지 않는다. 음수 정확도 같은 무효 측정은 제외하지만, 사용자가 허용한 대략적인 위치를 500m 같은 임의의 정확도 상한으로 거부하지 않는다. 카메라는 요청이 완료될 때 한 번 이동하며, 지도 위치 점이 계속 갱신된다고 카메라를 계속 따라 움직이지는 않는다.
 
