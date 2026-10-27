@@ -7,6 +7,6 @@ UI_IMPLEMENTATION = swiftui
 
 // 자동 서명에 쓰는 개발 팀입니다. tuist generate 후 Xcode에서 팀을 다시 고르지 않아도 됩니다.
 // 다른 팀으로 서명하려면 Secrets.xcconfig에 DEVELOPMENT_TEAM을 넣어 덮어씁니다.
-DEVELOPMENT_TEAM = GBU27WB645
+DEVELOPMENT_TEAM = LGX4B4WC66
 
 #include? "Secrets.xcconfig"
