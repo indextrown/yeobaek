@@ -3,7 +3,7 @@ import Foundation
 import Testing
 @testable import CrowdSwiftUIFeature
 
-@Suite("MapKit 첫 위치 측정 선택")
+@Suite("첫 위치 측정 선택")
 struct LocationSampleTests {
     @Test("정확도가 낮아도 최근의 대략적인 위치를 사용할 수 있다")
     func approximateLocationIsUsable() {

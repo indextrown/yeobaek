@@ -16,7 +16,7 @@ View는 입력 이벤트와 `render`를, ViewModel은 `transform`을 프로토�
 | `RxLabCounter*` | 화면별 View·ViewModel 프로토콜, `ViewData`, `any` 주입까지 전부 | 상태가 값 세 개로 떨어지고 지도 SDK 결합이 없어요. |
 | `MapBoxScreenView`, `MapBoxFeatureViewController` | 화면별 프로토콜과 `any` 주입 + 카메라 명령 메서드 | 상태는 `MapBoxScreenViewData`로 묶되, 카메라 이동은 `render`로 표현할 수 없어 별도 메서드로 둬요. |
 | `CrowdHome*`, `PlaceList*`, `PlaceDetail*` (UIKit 버전) | 화면별 View·ViewModel 프로토콜, `ViewData`, `any` 주입까지 전부 | SwiftUI 버전과 같은 화면이에요. 홈 ViewController는 지도 화면을 자식으로 넣고, 세 화면은 `CrowdSnapshotStore`를 함께 구독해요. 이동은 `CrowdUIKitCoordinator`가 맡아요. |
-| `MapFeature` | 적용하지 않음 | SwiftUI 화면이라 `UIView` 제약을 만족할 수 없어요. |
+| `CrowdSwiftUIFeature` | 적용하지 않음 | SwiftUI 버전이라 `UIView` 제약을 만족할 수 없어요. TCA 기준을 따라요. |
 
 `ViewType`이 잘 맞는 화면과 그렇지 않은 화면이 있어요. 판단 기준은 다음과 같아요.
 

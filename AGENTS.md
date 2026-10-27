@@ -35,7 +35,6 @@
 - 같은 화면을 **완전 SwiftUI 버전**(`CrowdSwiftUIFeature`, SwiftUI + TCA)과 **완전 UIKit 버전**(`CrowdUIKitFeature`, UIKit + RxSwift + MVVM)으로 각각 만든다. 한 Feature 안에서 SwiftUI와 UIKit을 섞지 않는다. 지도도 각 버전이 자기 기술로 그린다(Mapbox SwiftUI `Map` / Mapbox `MapView`).
 - 앱 기본값은 SwiftUI 버전이다. `UI_IMPLEMENTATION` 빌드 설정(`swiftui`·`uikit`)이나 디버그 실행 환경 변수로 UIKit 버전을 고르면, App이 UIKit 루트 `UINavigationController` 하나만 `Core`의 `UIViewControllerRepresentableContainer`로 감싸 끼운다. 두 기술이 만나는 곳은 이 한 군데뿐이다.
 - 화면을 바꾸거나 추가할 때는 두 버전을 함께 바꾼다. 문구, 접근성 식별자, 정렬·요약·흐름 규칙, 시트·지도 수치는 `Shared/CrowdPresentation`에 두고 두 버전이 같이 쓴다. UI 테스트(`CrowdHomeUITests`)는 두 버전에 같은 시나리오를 실행한다.
-- `MapFeature`(SwiftUI + TCA + MapKit)는 현재 App에 포함하지 않고 독립 Demo로만 실행한다.
 - `Domain`은 Entity, Repository protocol, UseCase와 비즈니스 규칙을 담당한다. UIKit, MapKit, Mapbox, RxSwift, GRDB 같은 구현 기술에 의존하지 않는다.
 - `Data`는 DTO, 외부 응답 변환, Repository 구현을 담당하고 `Domain`을 의존한다.
 - `Shared/Core`는 여러 모듈에서 재사용하는 기반 코드와 앱 설정 접근을 담당한다. 특정 Feature의 화면 정책을 넣지 않는다.

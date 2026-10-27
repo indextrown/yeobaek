@@ -30,14 +30,14 @@ Dynamic = 별도 Framework 파일을 앱에 넣고 실행할 때 불러와요.
 Static Framework를 사용하는 앱을 빌드하면 Framework의 코드가 앱 실행 파일에 합쳐져요.
 
 ```text
-MapFeature 코드 + YeobaekApp 코드
+CrowdUIKitFeature 코드 + YeobaekApp 코드
               ↓
       YeobaekApp 실행 파일
 ```
 
-최종 앱 안에 `MapFeature.framework`를 별도 실행 파일처럼 넣고 런타임에 불러오는 방식이 아니에요. 대신 앱을 링크할 때 필요한 코드가 앱 실행 파일에 포함돼요.
+최종 앱 안에 `CrowdUIKitFeature.framework`를 별도 실행 파일처럼 넣고 런타임에 불러오는 방식이 아니에요. 대신 앱을 링크할 때 필요한 코드가 앱 실행 파일에 포함돼요.
 
-그렇다고 모듈 구분이 사라지는 것은 아니에요. 개발할 때는 계속 별도 Target과 Module로 관리하고, `import MapFeature`처럼 접근 제어와 의존성 경계를 유지할 수 있어요.
+그렇다고 모듈 구분이 사라지는 것은 아니에요. 개발할 때는 계속 별도 Target과 Module로 관리하고, `import CrowdUIKitFeature`처럼 접근 제어와 의존성 경계를 유지할 수 있어요.
 
 Apple도 Static Framework의 주 바이너리를 정적 아카이브로 설명하며, 코드는 클라이언트에 링크되므로 임베드된 Framework 번들에서는 주 바이너리를 제외한다고 안내해요. 자세한 내용은 [Creating a static framework](https://developer.apple.com/documentation/Xcode/creating-a-static-framework)에서 확인할 수 있어요.
 
@@ -48,20 +48,20 @@ Feature에 Demo App이 있다고 해서 Feature를 Dynamic Framework로 만들 �
 Feature는 직접 실행되는 프로그램이 아니고, App과 Demo App이 Feature를 사용하는 실행 주체예요. 각 앱을 빌드할 때 Feature 코드가 각 실행 파일에 합쳐져요.
 
 ```text
-MapFeature 코드 + YeobaekApp 코드
+CrowdUIKitFeature 코드 + YeobaekApp 코드
               ↓
       YeobaekApp 실행 파일
 
-MapFeature 코드 + MapFeatureDemo 코드
+CrowdUIKitFeature 코드 + CrowdUIKitFeatureDemo 코드
               ↓
-    MapFeatureDemo 실행 파일
+    CrowdUIKitFeatureDemo 실행 파일
 ```
 
 따라서 다음 구조가 자연스러워요.
 
-- `MapFeature`: Static Framework
+- `CrowdUIKitFeature`: Static Framework
 - `YeobaekApp`: App Target
-- `MapFeatureDemo`: App Target
+- `CrowdUIKitFeatureDemo`: App Target
 
 Demo App의 역할은 Feature를 독립된 실행 환경에서 빠르게 확인하는 것이에요. Feature 바이너리가 런타임에 독립적으로 존재해야 한다는 뜻은 아니에요.
 
@@ -109,7 +109,7 @@ Static이 항상 빠르고 Dynamic이 항상 느리다고 단정할 수는 없�
 
 | 모듈 | 종류 | 이유 |
 | --- | --- | --- |
-| `MapFeature` | Static Framework | 내부 Feature이며 App과 Demo에 각각 합치면 돼요. |
+| `CrowdUIKitFeature` | Static Framework | 내부 Feature이며 App과 Demo에 각각 합치면 돼요. |
 | `CrowdUIKitFeature` | Static Framework | Feature 코드를 최종 App 링크 단계에서 `ThirdParty`와 함께 해결해요. |
 | `ThirdParty` | Dynamic Framework | 외부 SDK를 연결하는 허브 역할을 해요. |
 | `MapboxMaps` | Dynamic Framework | Mapbox가 제공하는 SDK 제품 정책을 따라요. |

@@ -17,7 +17,6 @@ Yeobaek은 Tuist로 App, Feature, Domain, Data, Shared를 분리한 iOS 멀티 �
 | --- | --- | --- |
 | `Projects/App` | SwiftUI `@main` 진입점, `AppDIContainer`, 화면 구현 선택(`UIImplementation`), 앱 설정과 리소스 | 앱 전체에서 한 번만 결정하는 조립과 시작 흐름을 둔다. |
 | `Projects/Features/CrowdSwiftUIFeature` | **SwiftUI 버전**: Mapbox SwiftUI 지도, 현재 위치, 홈 시트, 장소 목록, 장소 상세, `NavigationStack` 이동 | SwiftUI 버전 화면과 Reducer를 둔다. 조회는 `CrowdClient`, 위치는 `LocationClient` 의존성으로 한다. |
-| `Projects/Features/MapFeature` | SwiftUI + TCA + MapKit 기반 지도 화면과 독립 실행 Demo (현재 App에는 포함하지 않음) | `MapKitFeature` Reducer, `LocationClient` 의존성, MapKit 전용 UI를 둔다. |
 | `Projects/Features/CrowdUIKitFeature` | **UIKit 버전**: Mapbox `MapView` 지도 화면, 홈 시트, 장소 목록, 장소 상세, `CrowdUIKitCoordinator` 이동, UIKit Demo | UIKit 버전 화면, View·ViewModel 계약, 공유 상태(`CrowdSnapshotStore`)를 둔다. SwiftUI 타입을 두지 않는다. |
 | `Projects/Domain` | 장소, 좌표, 혼잡도 같은 Entity와 Repository protocol | 외부 프레임워크를 모르는 비즈니스 모델과 규칙을 둔다. |
 | `Projects/Data` | 서울 Open API 클라이언트, DTO와 응답 변환, 캐시하는 `SeoulCrowdRepository`, 121곳 장소 GeoJSON(`BundledPlaceRepository`), 예시·목업 저장소 | API나 DB의 구체 타입을 Domain Entity로 변환하는 코드를 둔다. |
@@ -59,7 +58,7 @@ Shared/RxExtension ──> Shared/ThirdParty
 Shared/RxLab ────────> Shared/Core, Shared/ThirdParty
 ```
 
-`Core`는 화면 계층의 공통 계약인 `ViewType`과 `ViewModelType`을 제공하므로 `ThirdParty`를 통해 RxSwift의 `DisposeBag`을 의존한다. `MapFeature`는 TCA를 위해 `ThirdParty`만 의존하고 `Core`는 의존하지 않는다.
+`Core`는 화면 계층의 공통 계약인 `ViewType`과 `ViewModelType`을 제공하므로 `ThirdParty`를 통해 RxSwift의 `DisposeBag`을 의존한다.
 
 핵심 원칙은 구현 계층이 추상 계층을 바라보는 것이다. `Data`는 `Domain`의 Repository protocol을 구현하고, Feature는 DTO가 아닌 Domain Entity를 사용한다. 외부 패키지는 Domain으로 전파하지 않는다.
 
@@ -83,7 +82,7 @@ App 타깃은 Data, Domain, Core, CrowdPresentation, ThirdParty와 두 Feature�
 
 ## Framework 구성
 
-- `CrowdSwiftUIFeature`, `MapFeature`, `CrowdUIKitFeature`는 최종 앱과 Demo 앱에서 사용하는 static framework다.
+- `CrowdSwiftUIFeature`, `CrowdUIKitFeature`는 최종 앱과 Demo 앱에서 사용하는 static framework다.
 - `Domain`, `Data`, `Core`, `CrowdPresentation`, `Featcher`, `ThirdParty`, `RxExtension`, `RxLab`은 dynamic framework다.
 - 실행 가능한 코드는 `YeobaekApp` 또는 각 Demo 앱이 최종적으로 연결하고 필요한 dynamic framework를 임베딩한다.
 - 제품 타입을 변경할 때는 기기 실행 시 중복 심볼과 `Library not loaded` 가능성을 함께 확인한다.
@@ -96,7 +95,6 @@ App 타깃은 Data, Domain, Core, CrowdPresentation, ThirdParty와 두 Feature�
 | --- | --- | --- |
 | 혼잡도 화면(지도·시트·목록·상세) | `CrowdSwiftUIFeature`와 `CrowdUIKitFeature` **둘 다** | 공통 문구·규칙은 `CrowdPresentation`, 두 버전 UI 테스트(`CrowdHomeUITests`) |
 | 두 버전이 같아야 하는 문구·식별자·규칙·수치 | `Projects/Shared/CrowdPresentation` | `CrowdPresentationTests` |
-| MapKit 화면 동작 | `Projects/Features/MapFeature` | `MapFeatureDemo`, 위치 권한 |
 | 공공데이터 응답 모델 | `Projects/Data` | Domain Entity 변환, Repository 구현 |
 | 앱에서 사용하는 장소·혼잡도 모델 | `Projects/Domain` | Repository protocol과 UseCase |
 | 공통 앱 설정·브리지 | `Projects/Shared/Core` | Bundle 값의 실제 소유자인 실행 타깃 |

@@ -1,18 +1,18 @@
 ---
 title: SwiftUI Feature에 TCA 적용하기
-description: SwiftUI 기반 CrowdFeature와 MapFeature에 The Composable Architecture를 적용한 구조와 작성·테스트 기준을 설명한다.
+description: SwiftUI 버전 CrowdSwiftUIFeature에 The Composable Architecture를 적용한 구조와 작성·테스트 기준을 설명한다.
 ---
 
 # SwiftUI Feature에 TCA 적용하기
 
 ## 이 문서에서 확인할 것
 
-혼잡도 화면은 SwiftUI 버전과 UIKit 버전을 각각 만든다. SwiftUI 버전 `CrowdSwiftUIFeature`(지도, 현재 위치, 홈 시트, 목록, 상세)와 `MapFeature`는 [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture)(TCA)로 상태를 관리한다. 이 문서는 현재 `MapFeature` 코드를 기준으로 TCA 적용 방식을 설명한다.
+혼잡도 화면은 SwiftUI 버전과 UIKit 버전을 각각 만든다. SwiftUI 버전 `CrowdSwiftUIFeature`(지도, 현재 위치, 홈 시트, 목록, 상세)는 [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture)(TCA)로 상태를 관리한다. 이 문서는 현재 `CrowdSwiftUIFeature` 코드를 기준으로 TCA 적용 방식을 설명한다.
 
 ## 패키지 연결
 
 - `Tuist/Package.swift`에서 `swift-composable-architecture`를 `1.26.0` 이상으로 받는다.
-- `Shared/ThirdParty`가 `ComposableArchitecture`를 의존하고, `CrowdSwiftUIFeature`와 `MapFeature`는 `ThirdParty`를 의존한다.
+- `Shared/ThirdParty`가 `ComposableArchitecture`를 의존하고, `CrowdSwiftUIFeature`는 `ThirdParty`를 의존한다.
 - `ThirdParty`는 TCA를 `@_exported`로 재노출하지 않는다. RxSwift의 `Observable`과 Observation의 `Observable` 같은 이름이 Rx 기반 모듈에서 충돌하지 않도록, TCA를 쓰는 파일에서만 `import ComposableArchitecture`를 작성한다.
 - TCA는 매크로를 사용하므로 첫 빌드 때 swift-syntax를 함께 빌드한다. 명령줄 빌드는 `-skipMacroValidation`을 붙이거나 Xcode에서 매크로 사용을 허용한다.
 - Xcode 27 SDK보다 낮은 최소 배포 버전을 선언한 외부 타깃은 `Tuist/Package.swift`의 `iOSTargetsBelowXcodeMinimum`, `macOSTargetsBelowXcodeMinimum` 목록으로 올린다. 패키지를 추가한 뒤 같은 오류가 나면 해당 타깃 이름을 목록에 추가한다.
@@ -28,19 +28,9 @@ description: SwiftUI 기반 CrowdFeature와 MapFeature에 The Composable Archite
 | `CurrentLocationFeature` | 홈의 자식 Reducer. 권한·위치 요청, 제한 시간, 카메라 명령, 현재 위치 중심 여부, 실패 alert를 관리한다. `LocationClient`(Core Location) 의존성을 쓴다. |
 | `CrowdHomeView` | `NavigationStack` 안에 Mapbox SwiftUI 지도(`CrowdMapView`), 내 위치 버튼, 위쪽 겹침, 홈 시트를 겹친다. 시트 높이는 `CrowdSheetLayout`으로 내 위치 버튼 여백과 맞춘다. UIKit 화면을 섞지 않는다. |
 
-## MapFeature 구성
-
-| 타입 | 역할 |
-| --- | --- |
-| `MapKitFeature` | `@Reducer`. 위치 요청 상태, 카메라 명령, 마지막 카메라, 자동 요청 여부, 실패 alert를 관리한다. 모듈 이름과 겹치지 않도록 `MapFeature`가 아닌 이름을 사용한다. |
-| `MapKitFeature.State` | `@ObservableState`. 기존 ViewModel과 Session이 나눠 갖던 상태를 하나로 합쳤다. |
-| `MapKitFeature.Action` | `onAppear`, `onDisappear`, `currentLocationButtonTapped`, `cameraChanged`처럼 View 이벤트와 effect 응답을 표현한다. |
-| `LocationClient` | `@DependencyClient`. 권한 상태, 권한 요청, 위치 조회를 제공한다. `liveValue`는 `CoreMapLocationProvider`를 감싸고 UI 테스트 시나리오도 여기서 고른다. |
-| `MapFeatureView` | `StoreOf<MapKitFeature>`를 받아 상태를 그리고 사용자 입력을 `store.send`로 전달한다. MapKit의 `MapCameraPosition`만 View의 `@State`로 둔다. |
-
 ## 작성 기준
 
-- Store는 화면보다 오래 살아야 하는 곳에서 만든다. 앱에서는 `AppDIContainer`, Demo에서는 `MapFeatureDemoApp`이 보관한다. 그래서 목록·상세에서 돌아와도 자동 위치 요청을 반복하지 않고 마지막 카메라를 유지한다.
+- Store는 화면보다 오래 살아야 하는 곳에서 만든다. 앱에서는 `AppDIContainer`가 보관한다. 그래서 목록·상세에서 돌아와도 자동 위치 요청을 반복하지 않고 마지막 카메라를 유지한다.
 - 화면 문구, 접근성 식별자, 정렬·요약 규칙은 직접 쓰지 않고 `CrowdPresentation`에서 가져온다. UIKit 버전과 같은 화면을 유지하기 위해서다.
 - 외부 시스템 호출은 Dependency Client로 감싼다. Reducer에서 Core Location, 네트워크, 시간을 직접 호출하지 않는다.
 - 시간 제한은 `@Dependency(\.continuousClock)`으로 계산한다. 테스트에서는 `TestClock`으로 시간을 직접 진행한다.
@@ -51,13 +41,13 @@ description: SwiftUI 기반 CrowdFeature와 MapFeature에 The Composable Archite
 
 ## 테스트 기준
 
-- `CrowdSwiftUIFeature/Tests/CrowdSwiftUIFeatureTests.swift`와 `MapFeature/Tests/MapKitFeatureTests.swift`는 `TestStore`와 Swift Testing으로 Reducer를 검증한다.
+- `CrowdSwiftUIFeature/Tests`의 `CrowdFeatureTests`, `CurrentLocationFeatureTests`는 `TestStore`와 Swift Testing으로 Reducer를 검증한다.
 - `withDependencies`로 `locationClient`, `continuousClock`, `uuid`를 주입하고 상태 변화를 모두 단언한다.
 - 취소 확인이 필요한 위치 요청은 `withTaskCancellationHandler`와 `Task.never()`로 응답하지 않는 요청을 만든다.
-- Core Location 변환과 취소 처리는 `CoreMapLocationProviderTests`, `MapFeatureLocationSampleTests`에서 별도로 검증한다.
+- Core Location 변환과 취소 처리는 `CoreLocationProviderTests`, `LocationSampleTests`에서 별도로 검증한다.
 
 ```sh
-xcodebuild -workspace Yeobaek.xcworkspace -scheme MapFeature \
+xcodebuild -workspace Yeobaek.xcworkspace -scheme CrowdSwiftUIFeature \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
   -skipMacroValidation test
 ```
