@@ -43,17 +43,26 @@ App
 │  ├─ CrowdFeature ─> Domain, Core, Shared/ThirdParty (ComposableArchitecture)
 │  └─ MapBoxFeature ──> Domain, 필요한 Shared 모듈
 ├─ Data ──────────────> Domain
-├─ Core ──────────────> Domain
+├─ Core ──────────────> Domain, Shared/ThirdParty
 ├─ Domain
 └─ ThirdParty
 
 Shared/RxExtension ──> Shared/ThirdParty
-Shared/RxLab ────────> Shared/ThirdParty
+Shared/RxLab ────────> Shared/Core, Shared/ThirdParty
 ```
+
+`Core`는 화면 계층의 공통 계약인 `ViewType`과 `ViewModelType`을 제공하므로 `ThirdParty`를 통해 RxSwift의 `DisposeBag`을 의존한다. `MapFeature`는 의존성이 없는 SwiftUI 모듈이라 이 의존이 전파되지 않는다.
 
 핵심 원칙은 구현 계층이 추상 계층을 바라보는 것이다. `Data`는 `Domain`의 Repository protocol을 구현하고, Feature는 DTO가 아닌 Domain Entity를 사용한다. 외부 패키지는 Domain으로 전파하지 않는다.
 
-현재 App 타깃은 Data, Domain, Core, ThirdParty, MapBoxFeature, CrowdFeature를 의존한다. `AppDependencies`가 `BundledPlaceRepository`와 `SeoulCrowdRepository`를 만들고, `AppRootView`가 같은 저장소를 `CrowdClient`(TCA)와 `MapBoxCrowdViewModel`(Rx)에 함께 넘긴다. Feature는 Data를 직접 의존하지 않는다. `MapBoxFeatureDemo`만 목업 조립을 위해 Data를 의존한다.
+현재 App 타깃은 Data, Domain, Core, ThirdParty, MapBoxFeature, CrowdFeature를 의존한다. 구체 타입 생성은 `AppDIContainer`가 한곳에서 담당한다. 컨테이너가 `BundledPlaceRepository`와 `SeoulCrowdRepository`를 만들고, 같은 저장소를 `CrowdClient`(TCA)와 `MapBoxCrowdViewModel`(Rx)에 함께 넘긴다. `AppRootView`는 컨테이너에서 Store, Session과 화면만 전달받는다. Feature는 Data를 직접 의존하지 않는다. `MapBoxFeatureDemo`만 목업 조립을 위해 Data를 의존한다.
+
+## 화면 계층 공통 계약
+
+- `Core`의 `ViewType`은 `UIView` 제약과 `render(_:)`를, `ViewModelType`은 `Input`, `Output`과 `transform(input:disposeBag:)`을 정의한다.
+- `ViewModelType`은 `@MainActor` 프로토콜이므로 채택 타입이 격리를 물려받는다. 구현체에 `@MainActor`를 다시 붙이지 않는다.
+- `transform`은 전달받은 Bag에 구독을 추가할 뿐 스스로 해제하지 않는다. ViewController 하나당 한 번만 호출한다.
+- UIKit 화면은 View 구현을 `UIView`로 분리하고 ViewController는 `loadView()`에서 주입받은 화면을 설치한다. 자세한 적용 범위는 [View·ViewModel 프로토콜 패턴](view-viewmodel-protocols.md)에서 확인한다.
 
 ## 실시간 혼잡도 표시
 
