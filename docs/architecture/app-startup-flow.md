@@ -1,15 +1,15 @@
 ---
 title: 앱 시작 및 지도 화면 흐름
-description: YeobaekApp 진입부터 MapKit과 Mapbox 화면을 선택하고 세션을 유지하는 과정까지 설명한다.
+description: YeobaekApp 진입부터 저장소 조립, Mapbox 지도와 혼잡도 홈 Store 생성, 목록·상세 이동까지 설명한다.
 ---
 
 # 앱 시작 및 지도 화면 흐름
 
 ## 이 문서에서 확인할 것
 
-Yeobaek은 SwiftUI App 생명주기를 사용한다. `YeobaekApp`이 `AppRootView`를 만들고, 루트 화면이 지도 제공자 선택과 두 지도 Session의 생명주기를 관리한다. 앱 시작, 루트 화면, 지도 전환 또는 전역 초기화를 바꿀 때 이 흐름을 먼저 확인한다.
+Yeobaek은 SwiftUI App 생명주기를 사용한다. `YeobaekApp`이 `AppRootView`를 만들고, 루트 화면이 저장소 조립, 혼잡도 홈 Store, Mapbox 지도 Session을 함께 만든다. 앱 시작, 루트 화면, 지도 조립 또는 전역 초기화를 바꿀 때 이 흐름을 먼저 확인한다.
 
-현재 App 진입점과 지도 전환 컨테이너는 SwiftUI지만 제품 Feature의 UI 기준과는 구분한다. `MapFeature`만 SwiftUI + TCA 화면이며, `MapBoxFeature`의 실제 화면은 UIKit + RxSwift + MVVM으로 구현한다. `MapBoxFeatureView`는 UIKit 화면을 현재 SwiftUI App 계층에 연결하는 래퍼다.
+홈은 두 기술을 겹쳐 쓴다. 바탕 지도는 `MapBoxFeature`의 UIKit + RxSwift + MVVM 화면이고, 그 위의 검색·분류·요약 시트와 목록·상세 화면은 `CrowdFeature`의 SwiftUI + TCA 화면이다. `CrowdFeature`는 지도 구현을 모르고 App이 `CrowdHomeView`에 지도 View를 넘긴다.
 
 ## 시작 순서
 
@@ -17,19 +17,21 @@ Yeobaek은 SwiftUI App 생명주기를 사용한다. `YeobaekApp`이 `AppRootVie
 | ---: | --- | --- |
 | 1 | `YeobaekApp` | `@main` 진입점으로 실행된다. |
 | 2 | `WindowGroup` | 앱 윈도에 `AppRootView`를 생성한다. |
-| 3 | `AppRootView` | 기본 지도 제공자를 `MapKit`으로 설정한다. |
-| 4 | `AppRootView` | `MapKitFeature` Store와 목업 혼잡도 ViewModel을 주입한 `MapBoxSession`을 `@State`로 생성해 화면 갱신 중에도 유지한다. |
-| 5 | 지도 선택 switch | 선택값에 따라 `MapFeatureView` 또는 `MapBoxFeatureView`를 표시한다. |
-| 6 | 상단 Picker | 사용자가 MapKit과 Mapbox를 바꾸면 같은 루트 안에서 표시할 Feature를 전환한다. |
+| 3 | `AppDependencies.make()` | 번들 GeoJSON으로 121곳 장소와 경계를 읽고, 서울 API 키로 `SeoulCrowdRepository`를 만든다. UI 테스트의 `UITEST_CROWD_SCENARIO=sample`이면 `SampleCrowdRepository`를 쓴다. |
+| 4 | `AppRootView` | `CrowdClient.live`를 주입한 `StoreOf<CrowdHomeFeature>`와, 같은 저장소를 쓰는 `MapBoxCrowdViewModel`을 담은 `MapBoxSession`을 `@State`로 만든다. |
+| 5 | `MapBoxSession.onSelectPlace` | 지도에서 영역을 누르면 Store에 `.placeTapped`를 보내 상세 화면을 연다. |
+| 6 | `CrowdHomeView` | `NavigationStack` 안에 지도와 홈 시트를 겹쳐 그리고, 목록·상세로 이동한다. |
 
 ```text
 UIApplication
 └─ YeobaekApp
    └─ WindowGroup
-      └─ AppRootView
-         ├─ MapProvider.mapKit ──> MapFeatureView(StoreOf<MapKitFeature>)
-         ├─ MapProvider.mapbox ──> MapBoxFeatureView(MapBoxSession)
-         └─ Segmented Picker
+      └─ AppRootView ── AppDependencies (장소 GeoJSON, SeoulCrowdRepository)
+         └─ CrowdHomeView(StoreOf<CrowdHomeFeature>)
+            ├─ MapBoxFeatureView(MapBoxSession)   바탕 지도
+            ├─ 검색 · 분류 칩 · 기준 시각           위쪽 겹침
+            ├─ HomeSummarySheet                  아래 시트
+            └─ path: PlaceListView / PlaceDetailView
 ```
 
 ## 객체별 책임
@@ -37,27 +39,28 @@ UIApplication
 | 객체 | 책임 | 생명주기 소유자 |
 | --- | --- | --- |
 | `YeobaekApp` | 앱 진입과 최초 Scene 구성 | SwiftUI App 런타임 |
-| `AppRootView` | 지도 제공자 선택, Feature 전환, Store와 Session 보관 | `WindowGroup` |
-| `StoreOf<MapKitFeature>` | MapKit 화면의 자동 위치 요청 여부, 요청 상태, 마지막 카메라 보관 | `AppRootView`의 `@State` |
-| `MapBoxSession` | 마지막 카메라, 자동 위치 요청 여부와 혼잡도 ViewModel 보관 | `AppRootView`의 `@State` |
-| `MapFeatureView` | 유일한 SwiftUI + TCA Feature인 MapKit 지도 UI | `AppRootView` |
-| `MapBoxFeatureView` | UIKit + RxSwift 기반 Mapbox 화면을 SwiftUI App 계층에 연결하는 래퍼 | `AppRootView` |
+| `AppDependencies` | 장소 목록과 혼잡도·상세 저장소 조립 | `AppRootView.init` |
+| `AppRootView` | Store와 지도 Session 생성, 지도 탭을 Store로 연결 | `WindowGroup` |
+| `StoreOf<CrowdHomeFeature>` | 121곳 혼잡도, 분류 선택, 목록·상세 이동 경로 | `AppRootView`의 `@State` |
+| `MapBoxSession` | 마지막 카메라, 자동 위치 요청 여부, 혼잡도 ViewModel, 시트 높이만큼의 버튼 여백 | `AppRootView`의 `@State` |
+| `MapBoxFeatureView` | UIKit + RxSwift 기반 Mapbox 화면을 SwiftUI 계층에 연결하는 래퍼 | `CrowdHomeView` |
 
-지도 제공자를 전환해도 MapKit Store와 Mapbox Session 인스턴스는 `AppRootView`에 남는다. 화면 내부 상태를 전환할 때마다 새로 시작해야 한다면 Store·Session의 소유 위치와 초기화 시점을 함께 변경해야 한다.
+지도와 홈 Store는 같은 `SeoulCrowdRepository` 인스턴스를 공유한다. 저장소가 장소별 5분 캐시와 진행 중 요청 공유를 맡으므로, 두 화면이 같은 장소를 요청해도 서울 API는 한 번만 호출된다.
 
-## 목업 혼잡도 조립
+## 혼잡도 불러오기
 
-`AppRootView`는 Data 모듈의 `CrowdMockData.areas`와 `MockCrowdRepository`로 `MapBoxCrowdViewModel`을 만들고 `MapBoxSession`에 보관한다. Feature에는 Domain의 `CrowdRepository` 프로토콜과 경계만 전달한다. `isMockData`는 `true`로 지정해 테스트용 경계와 관측값이라는 안내를 표시한다.
-
-혼잡도 조회는 위치 권한과 무관하게 화면 등장 시 시작한다. 화면이 사라지면 진행 중인 조회를 취소하며, 완료된 목업 결과는 Session이 보관한 ViewModel에서 유지한다. 다시 생성된 UIKit 화면은 Driver의 마지막 상태를 구독하고, 지도 스타일이 준비되면 경계를 표시한다. 일부 조회가 실패하면 해당 영역만 회색으로 남기고 다음 화면 등장 때 재시도한다.
-
-혼잡도 결과가 도착해도 현재 위치 카메라를 덮어쓰지 않는다. `목업 지역 보기` 버튼은 사용자의 명시적인 입력으로 전체 경계를 보여주는 별도 지도 조작이다. 기존 자동 위치 요청 횟수와 내 위치 이동 흐름은 유지한다.
+- 홈이 처음 나타나면 장소 목록을 읽고 121곳의 `citydata_ppltn`을 요청한다. 저장소는 동시에 6개까지만 보낸다.
+- 지도는 결과가 12곳씩 쌓일 때마다 영역 색을 갱신하고, 홈 시트는 장소별 응답이 올 때마다 분포와 붐비는 순을 갱신한다.
+- 실패한 장소는 정보 없음(회색)으로 표시하고, 시트의 `N곳 다시 불러오기`로 다시 요청한다.
+- 상세 화면은 열 때만 `citydata`를 요청한다. 상세 응답의 인구 정보는 혼잡도 캐시에도 넣는다.
+- 서울 Open API는 HTTP만 제공하므로 App Info.plist의 `NSAppTransportSecurity`에 `openapi.seoul.go.kr` 예외를 둔다.
+- 한 번 실행에 약 121회를 호출한다. 일 호출 한도가 있는 키라면 앱 실행 횟수에 주의하고, 한도 해제는 열린데이터광장 활용사례 등록 조건을 확인한다.
 
 ## 현재 위치 이동
 
 `MapBoxFeatureViewController`는 기본 ViewModel을 만들 때 `MapboxPuckLocationProvider`를 주입한다. 이 제공자는 지도 위치 점과 같은 `MapView.location`의 최근 좌표와 `onLocationChange`를 사용한다. 위치 점이 뒤늦게 나타나도 진행 중인 이동 요청에 좌표가 전달되며, 별도의 Core Location 좌표 조회를 기다리지 않는다. `CoreMapboxLocationProvider`는 이 경로에서 권한 확인과 요청만 담당한다.
 
-MapKit 화면은 `MapKitFeature`가 `LocationClient` 의존성으로 권한과 위치를 요청한다. `LocationClient.liveValue`가 감싼 `CoreMapLocationProvider`는 최근 좌표가 있으면 재사용하고, 없으면 `startUpdatingLocation()`으로 첫 유효한 위치를 받는다. 요청이 끝나거나 취소되면 위치 갱신을 중단한다. 일시적인 `locationUnknown`은 기존 제한 시간 안에서 다음 갱신을 기다린다.
+앱에 포함하지 않는 MapKit 화면(`MapFeature`, Demo로만 실행)은 `MapKitFeature`가 `LocationClient` 의존성으로 권한과 위치를 요청한다. `LocationClient.liveValue`가 감싼 `CoreMapLocationProvider`는 최근 좌표가 있으면 재사용하고, 없으면 `startUpdatingLocation()`으로 첫 유효한 위치를 받는다. 요청이 끝나거나 취소되면 위치 갱신을 중단한다. 일시적인 `locationUnknown`은 기존 제한 시간 안에서 다음 갱신을 기다린다.
 
 두 제공자는 측정 후 30초가 지난 좌표를 재사용하지 않는다. 음수 정확도 같은 무효 측정은 제외하지만, 사용자가 허용한 대략적인 위치를 500m 같은 임의의 정확도 상한으로 거부하지 않는다. 카메라는 요청이 완료될 때 한 번 이동하며, 지도 위치 점이 계속 갱신된다고 카메라를 계속 따라 움직이지는 않는다.
 
@@ -80,7 +83,7 @@ Demo는 Feature를 빠르게 실행하기 위한 개발 도구다. 제품 앱의
 ## 아직 시작 흐름에 없는 것
 
 - GRDB 데이터베이스 연결과 Migration 실행
-- Repository 구현과 UseCase를 조립하는 App DI Container
+- UseCase 계층과 기능이 늘었을 때의 App DI Container
 - 원격 API 클라이언트의 앱 범위 생명주기 관리
 - 로그인과 사용자 세션 초기화
 
@@ -88,8 +91,8 @@ Demo는 Feature를 빠르게 실행하기 위한 개발 도구다. 제품 앱의
 
 ## 변경 후 확인할 것
 
-- 기본 지도 제공자가 의도한 값인가
-- 지도 전환 후 Session 상태를 유지할지 초기화할지가 명확한가
+- 지도와 홈 Store가 같은 혼잡도 저장소를 공유하는가
+- 목록·상세에서 돌아온 뒤 Session 상태를 유지할지 초기화할지가 명확한가
 - App과 각 Demo 타깃에 필요한 xcconfig와 Info.plist 키가 연결됐는가
 - 위치 권한 요청 주체와 사용자 안내가 일치하는가
 - 새 전역 의존성의 생성 위치와 생명주기를 한곳에서 설명할 수 있는가

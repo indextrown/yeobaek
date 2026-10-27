@@ -10,6 +10,8 @@ public struct CrowdSnapshot: Equatable, Sendable {
     public let observedAt: Date
     /// `nil`은 데이터 제공 기관이 대체 데이터 사용 여부를 명시하지 않았다는 뜻입니다.
     public let isReplacementData: Bool?
+    /// 기준 시각 이후의 시간대별 예측입니다. 예측을 제공하지 않으면 빈 배열입니다.
+    public let forecasts: [CrowdForecast]
 
     /// 원천 데이터의 기준 시각에 해당하는 장소의 혼잡도와 추정 인구를 저장합니다.
     ///
@@ -20,13 +22,15 @@ public struct CrowdSnapshot: Equatable, Sendable {
     ///   - message: 혼잡도와 함께 제공되는 설명입니다. 설명이 없으면 `nil`입니다.
     ///   - observedAt: 응답 수신 시각이 아닌, 원천 데이터의 기준 시각입니다.
     ///   - isReplacementData: 대체 데이터 사용 여부입니다. 명시되지 않으면 `nil`입니다.
+    ///   - forecasts: 시간 순서의 예측 목록입니다. 예측이 없으면 빈 배열입니다.
     public init(
         placeID: Place.ID,
         level: CongestionLevel,
         population: PopulationRange?,
         message: String? = nil,
         observedAt: Date,
-        isReplacementData: Bool? = nil
+        isReplacementData: Bool? = nil,
+        forecasts: [CrowdForecast] = []
     ) {
         self.placeID = placeID
         self.level = level
@@ -34,5 +38,6 @@ public struct CrowdSnapshot: Equatable, Sendable {
         self.message = message
         self.observedAt = observedAt
         self.isReplacementData = isReplacementData
+        self.forecasts = forecasts
     }
 }

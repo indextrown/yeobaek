@@ -3,6 +3,21 @@ public struct SeoulPopulationResponseDTO: Decodable, Sendable {
     public let populations: [SeoulPopulationDTO]?
     public let result: SeoulAPIResultDTO
 
+    /// 인구 배열과 처리 결과를 디코딩합니다.
+    ///
+    /// 오류 응답은 `RESULT` 객체 없이 `RESULT.CODE`가 최상위에 올 수 있어 두 형태를 모두 읽습니다.
+    ///
+    /// - Parameter decoder: 응답 전체를 읽는 디코더입니다.
+    /// - Throws: 처리 결과를 어느 형태로도 읽지 못하면 디코딩 오류가 발생합니다.
+    public init(
+        from decoder: Decoder
+    ) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        populations = try container.decodeIfPresent([SeoulPopulationDTO].self, forKey: .populations)
+        result = try container.decodeIfPresent(SeoulAPIResultDTO.self, forKey: .result)
+            ?? SeoulAPIResultDTO(from: decoder)
+    }
+
     private enum CodingKeys: String, CodingKey {
         case populations = "SeoulRtd.citydata_ppltn"
         case result = "RESULT"

@@ -17,6 +17,14 @@ let project = Project(
                     "CFBundleShortVersionString": "$(MARKETING_VERSION)",
                     "CFBundleVersion": "$(CURRENT_PROJECT_VERSION)",
                     "MBXAccessToken": "$(MAPBOX_ACCESS_TOKEN)",
+                    // 서울 열린데이터광장 Open API는 HTTP만 제공하므로 이 도메인만 예외로 허용합니다.
+                    "NSAppTransportSecurity": [
+                        "NSExceptionDomains": [
+                            "openapi.seoul.go.kr": [
+                                "NSExceptionAllowsInsecureHTTPLoads": true,
+                            ],
+                        ],
+                    ],
                     "NSLocationWhenInUseUsageDescription": "현재 위치로 지도를 이동하기 위해 위치 정보가 필요합니다.",
                     "SeoulAPIKey": "$(SEOUL_API_KEY)",
                     "UILaunchScreen": [:],
@@ -32,8 +40,8 @@ let project = Project(
                 .project(target: "Domain", path: "../Domain"),
                 .project(target: "Core", path: "../Shared/Core"),
                 .project(target: "ThirdParty", path: "../Shared/ThirdParty"),
-                .project(target: "MapFeature", path: "../Features/MapFeature"),
                 .project(target: "MapBoxFeature", path: "../Features/MapBoxFeature"),
+                .project(target: "CrowdFeature", path: "../Features/CrowdFeature"),
             ],
             settings: .settings(
                 base: [
@@ -72,5 +80,8 @@ let project = Project(
                 ]
             )
         ),
+    ],
+    additionalFiles: [
+        "*.xcconfig",
     ]
 )
