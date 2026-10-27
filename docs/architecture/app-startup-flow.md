@@ -64,7 +64,7 @@ YeobaekApp
 
 `MapBoxFeatureViewController`는 기본 ViewModel을 만들 때 `MapboxPuckLocationProvider`를 주입한다. 이 제공자는 지도 위치 점과 같은 `MapView.location`의 최근 좌표와 `onLocationChange`를 사용한다. 위치 점이 뒤늦게 나타나도 진행 중인 이동 요청에 좌표가 전달되며, 별도의 Core Location 좌표 조회를 기다리지 않는다. `CoreMapboxLocationProvider`는 이 경로에서 권한 확인과 요청만 담당한다.
 
-앱에 포함하지 않는 MapKit 화면(`MapFeature`, Demo로만 실행)은 `MapKitFeature`가 `LocationClient` 의존성으로 권한과 위치를 요청한다. `LocationClient.liveValue`가 감싼 `CoreMapLocationProvider`는 최근 좌표가 있으면 재사용하고, 없으면 `startUpdatingLocation()`으로 첫 유효한 위치를 받는다. 요청이 끝나거나 취소되면 위치 갱신을 중단한다. 일시적인 `locationUnknown`은 기존 제한 시간 안에서 다음 갱신을 기다린다.
+SwiftUI 버전은 `CurrentLocationFeature`가 `LocationClient` 의존성으로 권한과 위치를 요청한다. `LocationClient.liveValue`가 감싼 `CoreLocationProvider`는 최근 좌표가 있으면 재사용하고, 없으면 `startUpdatingLocation()`으로 첫 유효한 위치를 받는다. 요청이 끝나거나 취소되면 위치 갱신을 중단한다. 일시적인 `locationUnknown`은 기존 제한 시간 안에서 다음 갱신을 기다린다.
 
 두 제공자는 측정 후 30초가 지난 좌표를 재사용하지 않는다. 음수 정확도 같은 무효 측정은 제외하지만, 사용자가 허용한 대략적인 위치를 500m 같은 임의의 정확도 상한으로 거부하지 않는다. 카메라는 요청이 완료될 때 한 번 이동하며, 지도 위치 점이 계속 갱신된다고 카메라를 계속 따라 움직이지는 않는다.
 
@@ -78,7 +78,7 @@ Feature framework 자체는 실행 Bundle이 아니다. API 키를 읽을 때는
 
 ## Demo 앱의 시작 흐름
 
-`MapFeatureDemo`, `CrowdUIKitFeatureDemo`, `FeatcherDemo`, `RxLabDemo`는 제품 앱과 별개의 실행 타깃이다. Demo Scheme을 선택하면 해당 Demo 앱이 실행 호스트가 되므로 필요한 Info.plist, xcconfig, 권한과 리소스를 Demo 타깃에도 연결해야 한다.
+`CrowdUIKitFeatureDemo`, `FeatcherDemo`, `RxLabDemo`는 제품 앱과 별개의 실행 타깃이다. Demo Scheme을 선택하면 해당 Demo 앱이 실행 호스트가 되므로 필요한 Info.plist, xcconfig, 권한과 리소스를 Demo 타깃에도 연결해야 한다.
 
 Demo는 Feature를 빠르게 실행하기 위한 개발 도구다. 제품 앱의 전역 상태나 다른 Feature에 의존하지 않고 대상 모듈만으로 실행되는 상태를 유지한다.
 

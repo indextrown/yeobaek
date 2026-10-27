@@ -22,8 +22,6 @@ Target은 Xcode가 만들어야 할 결과물과 빌드 방법을 정의해요. 
 | Target | 제품 | 역할 |
 | --- | --- | --- |
 | `YeobaekApp` | App | 사용자가 실행하는 실제 앱을 만들어요. |
-| `MapFeature` | Static Framework | MapKit 화면 코드를 제공해요. 혼자 실행할 수 없어요. |
-| `MapFeatureDemo` | App | `MapFeature`를 독립적으로 실행해요. |
 | `CrowdUIKitFeature` | Static Framework | Mapbox 화면 코드를 제공해요. 혼자 실행할 수 없어요. |
 | `CrowdUIKitFeatureDemo` | App | `CrowdUIKitFeature`를 독립적으로 실행해요. |
 | `ThirdParty` | Framework | 외부 SDK를 한곳에서 링크해요. |
@@ -146,7 +144,7 @@ Preview host = Preview를 실제로 실행하는 App
 | 작업 | 선택할 Scheme |
 | --- | --- |
 | 전체 앱 흐름 확인 | `YeobaekApp` |
-| MapKit Feature 개발과 Preview | `MapFeature` |
+| SwiftUI 버전 개발과 Preview | `YeobaekApp` (`UI_IMPLEMENTATION=swiftui`) |
 | Mapbox Feature 개발과 Preview | `CrowdUIKitFeature` |
 | Feature를 실제 앱에 조립한 결과 확인 | `YeobaekApp` |
 

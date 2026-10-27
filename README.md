@@ -20,7 +20,7 @@
 
 | 구분 | 기술 | 용도 |
 | --- | --- | --- |
-| 지도 | Mapbox (MapKit은 Demo로 유지) | 121곳 혼잡도 영역 시각화 |
+| 지도 | Mapbox (SwiftUI `Map`, UIKit `MapView`) | 121곳 혼잡도 영역 시각화 |
 | UI 프레임워크 | SwiftUI, UIKit | 같은 화면을 완전 SwiftUI 버전(`CrowdSwiftUIFeature`, 기본)과 완전 UIKit 버전(`CrowdUIKitFeature`)으로 각각 구현하고 설정으로 고름 |
 | SwiftUI 상태 관리 | The Composable Architecture (TCA) | SwiftUI Feature의 상태, 액션, 의존성, 화면 이동 관리 |
 | 데이터 | 서울 실시간 도시데이터 Open API | 121곳 실시간 혼잡도·12시간 예측(`citydata_ppltn`), 장소 상세(`citydata`) |
@@ -66,7 +66,7 @@ mise exec -- tuist generate
 
 생성된 `Yeobaek.xcworkspace`에서 `YeobaekApp` 스킴과 iPhone 시뮬레이터를 선택해 실행합니다. 실기기 실행 시에는 App 타깃에 본인의 개발 팀과 서명 설정이 필요합니다.
 
-[팝팡의 Tuist 구성](https://github.com/team-PopPang/PopPang-iOS)을 참고해 루트 워크스페이스와 프로젝트를 모듈별로 분리했습니다. 현재 App, Domain, Data, Features, Shared 계층과 MapKit·Mapbox 지도 화면, RxSwift Input/Output ViewModel을 구성했습니다. GRDB와 실제 공공데이터 네트워크 연동은 이후 단계에서 추가합니다. AppIcon은 이미지가 없는 자리표시자입니다.
+[팝팡의 Tuist 구성](https://github.com/team-PopPang/PopPang-iOS)을 참고해 루트 워크스페이스와 프로젝트를 모듈별로 분리했습니다. 현재 App, Domain, Data, Features, Shared 계층과 SwiftUI·UIKit 두 버전의 Mapbox 지도 화면, RxSwift Input/Output ViewModel을 구성했습니다. GRDB와 실제 공공데이터 네트워크 연동은 이후 단계에서 추가합니다. AppIcon은 이미지가 없는 자리표시자입니다.
 
 ```text
 Tuist.swift
@@ -82,7 +82,7 @@ Xcode 프로젝트·워크스페이스와 `Derived` 등 생성물은 Git에서 �
 
 ## 엔티티와 데이터 모델
 
-`Domain`에는 MapKit과 Mapbox에서 함께 사용할 데이터 모델을 정의해요. 지도 SDK의 객체나 화면 색상을 넣지 않고, 장소와 혼잡도를 표현하는 값만 관리해요.
+`Domain`에는 SwiftUI·UIKit 두 버전이 함께 사용할 데이터 모델을 정의해요. 지도 SDK의 객체나 화면 색상을 넣지 않고, 장소와 혼잡도를 표현하는 값만 관리해요.
 
 `Place`는 고유 코드로 식별하는 장소 엔티티예요. 좌표, 경계, 인구 범위 등은 장소를 설명하는 값 타입이며, 각각을 별도 DB 테이블로 만든다는 뜻은 아니에요.
 
@@ -141,11 +141,12 @@ Projects/
 ├── Data/
 ├── Domain/
 ├── Features/
-│   ├── MapFeature/
+│   ├── CrowdSwiftUIFeature/
 │   └── CrowdUIKitFeature/
 └── Shared/
     ├── Core/
     │   └── Sources/Core/Configuration/AppConfiguration.swift
+    ├── CrowdPresentation/
     ├── Featcher/
     ├── RxExtension/
     ├── RxLab/

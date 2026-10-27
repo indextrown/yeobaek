@@ -12,7 +12,6 @@ let workspace = Workspace(
         "Projects/Shared/RxExtension",
         "Projects/Shared/RxLab",
         "Projects/Shared/ThirdParty",
-        "Projects/Features/MapFeature",
         "Projects/Features/CrowdUIKitFeature",
         "Projects/Features/CrowdSwiftUIFeature",
     ]
