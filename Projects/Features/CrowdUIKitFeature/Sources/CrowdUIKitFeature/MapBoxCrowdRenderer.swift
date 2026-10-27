@@ -1,4 +1,5 @@
 import Core
+import CrowdPresentation
 import CoreLocation
 import Domain
 import MapboxMaps
@@ -27,7 +28,7 @@ final class MapBoxCrowdRenderer {
     private(set) var coordinates: [CLLocationCoordinate2D] = []
 
     /// 라벨을 보여 줄 최소 확대 수준입니다. 더 넓게 보면 기본 지도 라벨과 겹쳐 숨깁니다.
-    private static let labelMinimumZoom = 13.0
+    private static let labelMinimumZoom = CrowdMapStyle.labelMinimumZoom
 
     /// 마지막으로 만든 장소 라벨입니다. 확대 수준에 따라 표시하거나 숨깁니다.
     private var labelAnnotations: [PointAnnotation] = []
@@ -83,7 +84,7 @@ final class MapBoxCrowdRenderer {
                 let id = "\(placeID)-\(polygonIndex)"
                 var fill = PolygonAnnotation(id: id, polygon: .init(rings))
                 fill.fillColor = fillColor
-                fill.fillOpacity = 0.24
+                fill.fillOpacity = CrowdMapStyle.fillOpacity
                 if let onSelectPlace {
                     fill.tapHandler = { _ in
                         MainActor.assumeIsolated { onSelectPlace(placeID) }
@@ -95,7 +96,7 @@ final class MapBoxCrowdRenderer {
                 for (ringIndex, ring) in rings.enumerated() {
                     var line = PolylineAnnotation(id: "\(id)-ring-\(ringIndex)", lineCoordinates: ring)
                     line.lineColor = fillColor
-                    line.lineWidth = 2
+                    line.lineWidth = CrowdMapStyle.lineWidth
                     line.lineJoin = .miter
                     lines.append(line)
                 }
@@ -108,11 +109,11 @@ final class MapBoxCrowdRenderer {
                     coordinate: CLLocationCoordinate2D(latitude: label.latitude, longitude: label.longitude)
                 )
                 point.textField = place.name
-                point.textSize = 11
+                point.textSize = CrowdMapStyle.labelTextSize
                 let traits = UITraitCollection(userInterfaceStyle: isDarkAppearance ? .dark : .light)
                 point.textColor = StyleColor(CongestionPalette.text(area.level).resolvedColor(with: traits))
                 point.textHaloColor = StyleColor(isDarkAppearance ? .black : .white)
-                point.textHaloWidth = 1.5
+                point.textHaloWidth = CrowdMapStyle.labelHaloWidth
                 points.append(point)
             }
         }

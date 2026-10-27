@@ -2,7 +2,7 @@ import Foundation
 import RxCocoa
 import RxSwift
 import Testing
-@testable import MapBoxFeature
+@testable import CrowdUIKitFeature
 
 @MainActor
 @Suite("Mapbox 위치 점과 현재 위치 이동 연결")

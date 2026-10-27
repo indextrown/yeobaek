@@ -3,7 +3,7 @@ import Foundation
 import RxCocoa
 import RxSwift
 import Testing
-@testable import MapBoxFeature
+@testable import CrowdUIKitFeature
 
 @MainActor
 @Suite("Mapbox Input Output ViewModel")

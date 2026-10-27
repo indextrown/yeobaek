@@ -1,18 +1,19 @@
 import ProjectDescription
 
 let project = Project(
-    name: "MapBoxFeature",
+    name: "CrowdUIKitFeature",
     targets: [
         .target(
-            name: "MapBoxFeature",
+            name: "CrowdUIKitFeature",
             destinations: [.iPhone],
             product: .staticFramework,
-            bundleId: "com.indextrown.yeobaek.mapbox-feature",
+            bundleId: "com.indextrown.yeobaek.crowd-uikit-feature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             dependencies: [
                 .project(target: "Domain", path: "../../Domain"),
                 .project(target: "Core", path: "../../Shared/Core"),
+                .project(target: "CrowdPresentation", path: "../../Shared/CrowdPresentation"),
                 .project(target: "Featcher", path: "../../Shared/Featcher"),
                 .project(target: "RxExtension", path: "../../Shared/RxExtension"),
                 .project(target: "ThirdParty", path: "../../Shared/ThirdParty"),
@@ -28,22 +29,24 @@ let project = Project(
             )
         ),
         .target(
-            name: "MapBoxFeatureDemo",
+            name: "CrowdUIKitFeatureDemo",
             destinations: [.iPhone],
             product: .app,
-            bundleId: "com.indextrown.yeobaek.mapbox-feature-demo",
+            bundleId: "com.indextrown.yeobaek.crowd-uikit-feature-demo",
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(
                 with: [
                     "MBXAccessToken": "$(MAPBOX_ACCESS_TOKEN)",
                     "NSLocationWhenInUseUsageDescription": "현재 위치로 지도를 이동하기 위해 위치 정보가 필요합니다.",
                     "SeoulAPIKey": "$(SEOUL_API_KEY)",
+                    "UILaunchScreen": [:],
                 ]
             ),
             sources: ["Demo/**"],
             dependencies: [
-                .target(name: "MapBoxFeature"),
+                .target(name: "CrowdUIKitFeature"),
                 .project(target: "Data", path: "../../Data"),
+                .project(target: "CrowdPresentation", path: "../../Shared/CrowdPresentation"),
             ],
             settings: .settings(
                 base: [
@@ -62,14 +65,14 @@ let project = Project(
             )
         ),
         .target(
-            name: "MapBoxFeatureTests",
+            name: "CrowdUIKitFeatureTests",
             destinations: [.iPhone],
             product: .unitTests,
-            bundleId: "com.indextrown.yeobaek.mapbox-feature-tests",
+            bundleId: "com.indextrown.yeobaek.crowd-uikit-feature-tests",
             deploymentTargets: .iOS("17.0"),
             sources: ["Tests/**"],
             dependencies: [
-                .target(name: "MapBoxFeature"),
+                .target(name: "CrowdUIKitFeature"),
                 .external(name: "RxCocoa"),
                 .external(name: "RxSwift"),
             ],
