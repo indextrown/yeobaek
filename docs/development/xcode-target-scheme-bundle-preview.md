@@ -7,9 +7,9 @@ description: "Target과 Scheme의 차이, Bundle.main이 가리키는 대상, Sw
 
 ## 개요
 
-모듈 안의 SwiftUI View를 Preview할 때 같은 코드인데도 선택한 Scheme에 따라 설정값이 달라질 수 있어요. 여백에서는 `YeobaekApp` Scheme으로 `MapBoxFeatureView`를 Preview했을 때 Mapbox 토큰을 찾지 못했지만, `MapBoxFeature` Scheme으로 바꾸자 지도가 정상적으로 나타났어요.
+모듈 안의 SwiftUI View를 Preview할 때 같은 코드인데도 선택한 Scheme에 따라 설정값이 달라질 수 있어요. 여백에서는 `YeobaekApp` Scheme으로 `MapBoxFeatureView`를 Preview했을 때 Mapbox 토큰을 찾지 못했지만, `CrowdUIKitFeature` Scheme으로 바꾸자 지도가 정상적으로 나타났어요.
 
-여기서 `MapBoxFeatureView`는 Mapbox 화면을 SwiftUI로 구현한 View가 아니에요. UIKit + RxSwift + MVVM으로 만든 Mapbox ViewController를 App과 Preview에서 실행하기 위한 SwiftUI 래퍼예요. 프로젝트에서 실제 Feature 화면을 SwiftUI로 구현하는 모듈은 `MapFeature`뿐이에요.
+> 이 사례의 `MapBoxFeatureView`(UIKit Mapbox 화면을 감싼 SwiftUI 래퍼)는 화면을 SwiftUI·UIKit 버전으로 나누면서 삭제됐어요. 지금은 SwiftUI 버전 `CrowdHomeView`(Mapbox SwiftUI 지도)나 UIKit 버전 `CrowdUIKitFeatureDemo`로 같은 원리를 확인할 수 있어요. Bundle과 실행 호스트 원리는 그대로예요.
 
 이 현상을 이해하려면 Target, Scheme, Bundle의 역할을 구분해야 해요. 이 문서를 읽고 나면 Feature의 Demo App이 왜 필요한지, Preview에서 `Bundle.main`이 무엇을 가리키는지, 설정값이 보이지 않을 때 어디부터 확인해야 하는지 알 수 있어요.
 
@@ -24,15 +24,15 @@ Target은 Xcode가 만들어야 할 결과물과 빌드 방법을 정의해요. 
 | `YeobaekApp` | App | 사용자가 실행하는 실제 앱을 만들어요. |
 | `MapFeature` | Static Framework | MapKit 화면 코드를 제공해요. 혼자 실행할 수 없어요. |
 | `MapFeatureDemo` | App | `MapFeature`를 독립적으로 실행해요. |
-| `MapBoxFeature` | Static Framework | Mapbox 화면 코드를 제공해요. 혼자 실행할 수 없어요. |
-| `MapBoxFeatureDemo` | App | `MapBoxFeature`를 독립적으로 실행해요. |
+| `CrowdUIKitFeature` | Static Framework | Mapbox 화면 코드를 제공해요. 혼자 실행할 수 없어요. |
+| `CrowdUIKitFeatureDemo` | App | `CrowdUIKitFeature`를 독립적으로 실행해요. |
 | `ThirdParty` | Framework | 외부 SDK를 한곳에서 링크해요. |
 
 Static Framework도 별도 Target이에요. 개발할 때는 모듈 경계를 유지하지만, 최종 앱을 링크할 때 그 코드가 앱에 합쳐져요. Demo App은 같은 Feature 코드를 자신의 실행 파일에 넣어 실행해요.
 
 ```text
-MapBoxFeature 코드 + YeobaekApp 코드 = YeobaekApp
-MapBoxFeature 코드 + MapBoxFeatureDemo 코드 = MapBoxFeatureDemo
+CrowdUIKitFeature 코드 + YeobaekApp 코드 = YeobaekApp
+CrowdUIKitFeature 코드 + CrowdUIKitFeatureDemo 코드 = CrowdUIKitFeatureDemo
 ```
 
 Feature마다 Demo App이 있어도 Feature를 Dynamic Framework로 만들 필요는 없어요. Feature는 화면 코드를 제공하고 App과 Demo가 실행을 담당해요.
@@ -53,15 +53,15 @@ Scheme에는 다음 Action이 있어요.
 
 Xcode는 선택한 Scheme을 보고 Build, Run, Test, Profile, Archive 작업을 수행해요. Scheme의 Build 목록에는 여러 Target이 들어갈 수 있고, Run에는 실제로 실행할 App Target이 필요해요. [Apple의 Scheme 설명](https://developer.apple.com/documentation/xcode/customizing-the-build-schemes-for-a-project)
 
-여백의 `MapBoxFeature` Scheme은 이름이 Feature와 같지만 실제 실행 제품은 `MapBoxFeatureDemo`예요.
+여백의 `CrowdUIKitFeature` Scheme은 이름이 Feature와 같지만 실제 실행 제품은 `CrowdUIKitFeatureDemo`예요.
 
 ```text
-MapBoxFeature Scheme
+CrowdUIKitFeature Scheme
 ├── Build: MapBoxFeature와 필요한 의존성
-└── Run: MapBoxFeatureDemo
+└── Run: CrowdUIKitFeatureDemo
 ```
 
-Xcode 상단에서 `MapBoxFeature` Scheme을 선택하고 실행했을 때 `Finished running MapBoxFeatureDemo`라고 표시되는 이유예요.
+Xcode 상단에서 `CrowdUIKitFeature` Scheme을 선택하고 실행했을 때 `Finished running CrowdUIKitFeatureDemo`라고 표시되는 이유예요.
 
 ## Bundle은 코드와 리소스를 담는 상자예요
 
@@ -74,7 +74,7 @@ YeobaekApp이 실행 중
 └── Bundle.main = YeobaekApp.app
 
 MapBoxFeatureDemo가 실행 중
-└── Bundle.main = MapBoxFeatureDemo.app
+└── Bundle.main = CrowdUIKitFeatureDemo.app
 ```
 
 여백의 `AppConfiguration`은 다음 흐름으로 Mapbox 토큰을 읽어요.
@@ -109,10 +109,10 @@ Preview Canvas는 화면만 그리는 정적 이미지가 아니에요. Preview�
 
 `MapBoxFeatureView`는 초기화할 때 `AppConfiguration.mapboxAccessToken`을 읽어요. `AppConfiguration`은 `Bundle.main`의 Info.plist에서 `MBXAccessToken`을 찾아요.
 
-`YeobaekApp` Scheme으로 Framework 소스의 Preview를 열었을 때는 Preview 실행 컨텍스트에서 기대한 토큰 값을 읽지 못했어요. `MapBoxFeature` Scheme으로 변경하자 `MapBoxFeatureDemo`가 Preview 호스트가 되었고, Demo Target에 연결된 설정을 읽을 수 있었어요.
+`YeobaekApp` Scheme으로 Framework 소스의 Preview를 열었을 때는 Preview 실행 컨텍스트에서 기대한 토큰 값을 읽지 못했어요. `CrowdUIKitFeature` Scheme으로 변경하자 `CrowdUIKitFeatureDemo`가 Preview 호스트가 되었고, Demo Target에 연결된 설정을 읽을 수 있었어요.
 
 ```text
-MapBoxFeature Scheme
+CrowdUIKitFeature Scheme
 → MapBoxFeatureDemo가 실행 호스트
 → MapBoxFeatureDemo의 Debug 설정 사용
 → Projects/App/Secrets.xcconfig 적용
@@ -127,10 +127,10 @@ Demo App이어서 토큰을 특별하게 처리한 것은 아니에요. Demo App
 
 | 개념 | 답하는 질문 | 여백의 예 |
 | --- | --- | --- |
-| Target | 무엇을 만들까요? | `MapBoxFeature`, `MapBoxFeatureDemo` |
-| Scheme | 무엇을 어떻게 빌드하고 실행할까요? | `MapBoxFeature` Scheme이 Demo를 실행해요. |
-| Bundle | 실행 파일과 설정·리소스는 어디에 들어 있나요? | `MapBoxFeatureDemo.app` |
-| Preview host | Preview 코드는 어느 App 안에서 실행되나요? | `MapBoxFeatureDemo` |
+| Target | 무엇을 만들까요? | `CrowdUIKitFeature`, `CrowdUIKitFeatureDemo` |
+| Scheme | 무엇을 어떻게 빌드하고 실행할까요? | `CrowdUIKitFeature` Scheme이 Demo를 실행해요. |
+| Bundle | 실행 파일과 설정·리소스는 어디에 들어 있나요? | `CrowdUIKitFeatureDemo.app` |
+| Preview host | Preview 코드는 어느 App 안에서 실행되나요? | `CrowdUIKitFeatureDemo` |
 
 짧게 표현하면 다음과 같아요.
 
@@ -147,7 +147,7 @@ Preview host = Preview를 실제로 실행하는 App
 | --- | --- |
 | 전체 앱 흐름 확인 | `YeobaekApp` |
 | MapKit Feature 개발과 Preview | `MapFeature` |
-| Mapbox Feature 개발과 Preview | `MapBoxFeature` |
+| Mapbox Feature 개발과 Preview | `CrowdUIKitFeature` |
 | Feature를 실제 앱에 조립한 결과 확인 | `YeobaekApp` |
 
 Feature를 개발할 때는 해당 Demo Scheme을 선택하면 필요한 설정과 실행 환경을 좁게 유지할 수 있어요. 전체 앱의 화면 전환과 모듈 조립을 확인할 때는 `YeobaekApp` Scheme을 사용해요.

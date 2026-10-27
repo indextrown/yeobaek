@@ -21,7 +21,7 @@
 | 구분 | 기술 | 용도 |
 | --- | --- | --- |
 | 지도 | Mapbox (MapKit은 Demo로 유지) | 121곳 혼잡도 영역 시각화 |
-| UI 프레임워크 | UIKit, SwiftUI | 지도(MapBoxFeature)는 UIKit + RxSwift, 홈 시트·목록·상세(CrowdFeature)는 SwiftUI |
+| UI 프레임워크 | SwiftUI, UIKit | 같은 화면을 완전 SwiftUI 버전(`CrowdSwiftUIFeature`, 기본)과 완전 UIKit 버전(`CrowdUIKitFeature`)으로 각각 구현하고 설정으로 고름 |
 | SwiftUI 상태 관리 | The Composable Architecture (TCA) | SwiftUI Feature의 상태, 액션, 의존성, 화면 이동 관리 |
 | 데이터 | 서울 실시간 도시데이터 Open API | 121곳 실시간 혼잡도·12시간 예측(`citydata_ppltn`), 장소 상세(`citydata`) |
 | 앱 아키텍처 | MVVM + Clean Architecture + RxSwift | 화면 상태, 비즈니스 규칙, 데이터 구현 분리 |
@@ -120,6 +120,17 @@ Place.id
 
 실제 서울시 API(`SeoulCrowdRepository`)와 121곳 장소 경계(`BundledPlaceRepository`, `Resources/SeoulPlaces.geojson`)가 연결되어 있어요. 앱을 실행하려면 `Projects/App/Secrets.xcconfig`에 `SEOUL_API_KEY`와 `MAPBOX_ACCESS_TOKEN`을 넣어요.
 
+### SwiftUI 버전과 UIKit 버전 바꾸기
+
+같은 화면을 SwiftUI 버전과 UIKit 버전으로 각각 만들어 두었어요. 기본은 SwiftUI 버전이에요.
+
+| 방법 | 설정 |
+| --- | --- |
+| 빌드 설정 | `Projects/App/Configuration.xcconfig` 또는 `Secrets.xcconfig`의 `UI_IMPLEMENTATION = uikit` |
+| 디버그 실행 | Scheme의 Environment Variables에 `UI_IMPLEMENTATION=uikit` |
+
+UIKit 버전만 따로 확인하려면 `CrowdUIKitFeature` Scheme의 `CrowdUIKitFeatureDemo`를 실행해요. 네트워크 없이 예시 혼잡도를 보여 줘요.
+
 ## 모듈 디렉터리 구성
 
 `Data`는 Demo 앱이 없는 dynamic framework예요. DTO, Domain 모델로의 매핑, Repository 구현, 목업 데이터를 관리해요. Repository 프로토콜과 엔티티는 `Domain`에 유지하고, 의존성은 `App → Data → Domain`으로 연결해요. `AppConfiguration` 등 공통 코드는 `Shared/Core`에 남겨요.
@@ -131,7 +142,7 @@ Projects/
 ├── Domain/
 ├── Features/
 │   ├── MapFeature/
-│   └── MapBoxFeature/
+│   └── CrowdUIKitFeature/
 └── Shared/
     ├── Core/
     │   └── Sources/Core/Configuration/AppConfiguration.swift

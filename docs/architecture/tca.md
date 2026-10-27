@@ -7,17 +7,17 @@ description: SwiftUI 기반 CrowdFeature와 MapFeature에 The Composable Archite
 
 ## 이 문서에서 확인할 것
 
-Yeobaek의 지도 화면은 UIKit + RxSwift + MVVM으로 만든다. SwiftUI로 구현하는 `CrowdFeature`(홈 시트, 목록, 상세)와 `MapFeature`는 [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture)(TCA)로 상태를 관리한다. 이 문서는 현재 `MapFeature` 코드를 기준으로 TCA 적용 방식을 설명한다.
+혼잡도 화면은 SwiftUI 버전과 UIKit 버전을 각각 만든다. SwiftUI 버전 `CrowdSwiftUIFeature`(지도, 현재 위치, 홈 시트, 목록, 상세)와 `MapFeature`는 [The Composable Architecture](https://github.com/pointfreeco/swift-composable-architecture)(TCA)로 상태를 관리한다. 이 문서는 현재 `MapFeature` 코드를 기준으로 TCA 적용 방식을 설명한다.
 
 ## 패키지 연결
 
 - `Tuist/Package.swift`에서 `swift-composable-architecture`를 `1.26.0` 이상으로 받는다.
-- `Shared/ThirdParty`가 `ComposableArchitecture`를 의존하고, `CrowdFeature`와 `MapFeature`는 `ThirdParty`를 의존한다.
+- `Shared/ThirdParty`가 `ComposableArchitecture`를 의존하고, `CrowdSwiftUIFeature`와 `MapFeature`는 `ThirdParty`를 의존한다.
 - `ThirdParty`는 TCA를 `@_exported`로 재노출하지 않는다. RxSwift의 `Observable`과 Observation의 `Observable` 같은 이름이 Rx 기반 모듈에서 충돌하지 않도록, TCA를 쓰는 파일에서만 `import ComposableArchitecture`를 작성한다.
 - TCA는 매크로를 사용하므로 첫 빌드 때 swift-syntax를 함께 빌드한다. 명령줄 빌드는 `-skipMacroValidation`을 붙이거나 Xcode에서 매크로 사용을 허용한다.
 - Xcode 27 SDK보다 낮은 최소 배포 버전을 선언한 외부 타깃은 `Tuist/Package.swift`의 `iOSTargetsBelowXcodeMinimum`, `macOSTargetsBelowXcodeMinimum` 목록으로 올린다. 패키지를 추가한 뒤 같은 오류가 나면 해당 타깃 이름을 목록에 추가한다.
 
-## CrowdFeature 구성
+## CrowdSwiftUIFeature 구성
 
 | 타입 | 역할 |
 | --- | --- |
@@ -25,7 +25,8 @@ Yeobaek의 지도 화면은 UIKit + RxSwift + MVVM으로 만든다. SwiftUI로 �
 | `PlaceListFeature` | 분류·검색·정렬을 적용한 목록이다. 장소를 고르면 `delegate(.openDetail)`로 홈에 알린다. |
 | `PlaceDetailFeature` | 장소 상세(`citydata`)를 열 때 불러오고, 실패하면 다시 시도할 수 있다. |
 | `CrowdClient` | `@DependencyClient`. `catalog`, `snapshot`, `detail`을 제공한다. `TestDependencyKey`만 두고 실제 구현은 App이 `CrowdClient.live(places:crowd:details:)`로 주입한다. |
-| `CrowdHomeView` | `NavigationStack` 안에 App이 넘긴 지도와 홈 시트를 겹친다. 시트 높이는 `CrowdHomeLayout`으로 지도 버튼 여백과 맞춘다. |
+| `CurrentLocationFeature` | 홈의 자식 Reducer. 권한·위치 요청, 제한 시간, 카메라 명령, 현재 위치 중심 여부, 실패 alert를 관리한다. `LocationClient`(Core Location) 의존성을 쓴다. |
+| `CrowdHomeView` | `NavigationStack` 안에 Mapbox SwiftUI 지도(`CrowdMapView`), 내 위치 버튼, 위쪽 겹침, 홈 시트를 겹친다. 시트 높이는 `CrowdSheetLayout`으로 내 위치 버튼 여백과 맞춘다. UIKit 화면을 섞지 않는다. |
 
 ## MapFeature 구성
 
@@ -39,7 +40,8 @@ Yeobaek의 지도 화면은 UIKit + RxSwift + MVVM으로 만든다. SwiftUI로 �
 
 ## 작성 기준
 
-- Store는 화면보다 오래 살아야 하는 곳에서 만든다. 앱에서는 `AppRootView`, Demo에서는 `MapFeatureDemoApp`이 `@State`로 보관한다. 그래서 지도 제공자를 바꿨다가 돌아와도 자동 위치 요청을 반복하지 않고 마지막 카메라를 복원한다.
+- Store는 화면보다 오래 살아야 하는 곳에서 만든다. 앱에서는 `AppDIContainer`, Demo에서는 `MapFeatureDemoApp`이 보관한다. 그래서 목록·상세에서 돌아와도 자동 위치 요청을 반복하지 않고 마지막 카메라를 유지한다.
+- 화면 문구, 접근성 식별자, 정렬·요약 규칙은 직접 쓰지 않고 `CrowdPresentation`에서 가져온다. UIKit 버전과 같은 화면을 유지하기 위해서다.
 - 외부 시스템 호출은 Dependency Client로 감싼다. Reducer에서 Core Location, 네트워크, 시간을 직접 호출하지 않는다.
 - 시간 제한은 `@Dependency(\.continuousClock)`으로 계산한다. 테스트에서는 `TestClock`으로 시간을 직접 진행한다.
 - 진행 중인 요청은 `.cancellable(id:cancelInFlight:)`로 묶고 화면 이탈 시 `.cancel(id:)`로 취소한다. 취소된 effect의 늦은 응답은 상태를 바꾸지 않는다.
@@ -49,7 +51,7 @@ Yeobaek의 지도 화면은 UIKit + RxSwift + MVVM으로 만든다. SwiftUI로 �
 
 ## 테스트 기준
 
-- `CrowdFeature/Tests/CrowdFeatureTests.swift`와 `MapFeature/Tests/MapKitFeatureTests.swift`는 `TestStore`와 Swift Testing으로 Reducer를 검증한다.
+- `CrowdSwiftUIFeature/Tests/CrowdSwiftUIFeatureTests.swift`와 `MapFeature/Tests/MapKitFeatureTests.swift`는 `TestStore`와 Swift Testing으로 Reducer를 검증한다.
 - `withDependencies`로 `locationClient`, `continuousClock`, `uuid`를 주입하고 상태 변화를 모두 단언한다.
 - 취소 확인이 필요한 위치 요청은 `withTaskCancellationHandler`와 `Task.never()`로 응답하지 않는 요청을 만든다.
 - Core Location 변환과 취소 처리는 `CoreMapLocationProviderTests`, `MapFeatureLocationSampleTests`에서 별도로 검증한다.

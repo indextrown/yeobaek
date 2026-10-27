@@ -9,19 +9,20 @@ description: 현재 Tuist 모듈의 책임, 실제 의존 방향, 기능을 추�
 
 Yeobaek은 Tuist로 App, Feature, Domain, Data, Shared를 분리한 iOS 멀티 모듈 프로젝트다. 목표 아키텍처가 아니라 현재 `Project.swift`와 소스 구조를 기준으로 설명한다.
 
-아키텍처 방향은 MVVM, Clean Architecture, RxSwift 조합이다. 다만 모든 계층이 완성된 상태는 아니다. 앱은 현재 두 지도 Feature와 세션을 직접 조립하고 있으며, GRDB는 기술 선택만 완료되고 패키지와 마이그레이션은 아직 연결되지 않았다.
+혼잡도 화면은 같은 화면을 **완전 SwiftUI 버전**(SwiftUI + TCA)과 **완전 UIKit 버전**(UIKit + RxSwift + MVVM)으로 각각 구현한다. 앱은 기본으로 SwiftUI 버전을 쓰고, 설정으로 UIKit 버전을 바꿔 끼울 수 있다. GRDB는 기술 선택만 완료되고 패키지와 마이그레이션은 아직 연결되지 않았다.
 
 ## 모듈별 책임
 
 | 영역 | 현재 책임 | 새 코드를 둘 때 |
 | --- | --- | --- |
-| `Projects/App` | SwiftUI `@main` 진입점, `AppDIContainer`, 혼잡도 홈 루트 화면, 앱 설정과 리소스 | 앱 전체에서 한 번만 결정하는 조립과 시작 흐름을 둔다. |
-| `Projects/Features/CrowdFeature` | SwiftUI + TCA 기반 혼잡도 홈 시트, 장소 목록, 장소 상세 | 지도 위 요약과 정보 화면을 둔다. 지도는 App이 `CrowdHomeView`에 주입하고, 조회는 `CrowdClient` 의존성으로 한다. |
+| `Projects/App` | SwiftUI `@main` 진입점, `AppDIContainer`, 화면 구현 선택(`UIImplementation`), 앱 설정과 리소스 | 앱 전체에서 한 번만 결정하는 조립과 시작 흐름을 둔다. |
+| `Projects/Features/CrowdSwiftUIFeature` | **SwiftUI 버전**: Mapbox SwiftUI 지도, 현재 위치, 홈 시트, 장소 목록, 장소 상세, `NavigationStack` 이동 | SwiftUI 버전 화면과 Reducer를 둔다. 조회는 `CrowdClient`, 위치는 `LocationClient` 의존성으로 한다. |
 | `Projects/Features/MapFeature` | SwiftUI + TCA + MapKit 기반 지도 화면과 독립 실행 Demo (현재 App에는 포함하지 않음) | `MapKitFeature` Reducer, `LocationClient` 의존성, MapKit 전용 UI를 둔다. |
-| `Projects/Features/MapBoxFeature` | UIKit + RxSwift + MVVM 기반 Mapbox 바탕 지도, 121곳 혼잡도 영역·라벨·탭, App 연결용 SwiftUI 래퍼, 독립 실행 Demo | 위치 조회와 혼잡도 조회를 분리하고 Domain 경계를 Mapbox 표현으로 변환한다. |
+| `Projects/Features/CrowdUIKitFeature` | **UIKit 버전**: Mapbox `MapView` 지도 화면, 홈 시트, 장소 목록, 장소 상세, `CrowdUIKitCoordinator` 이동, UIKit Demo | UIKit 버전 화면, View·ViewModel 계약, 공유 상태(`CrowdSnapshotStore`)를 둔다. SwiftUI 타입을 두지 않는다. |
 | `Projects/Domain` | 장소, 좌표, 혼잡도 같은 Entity와 Repository protocol | 외부 프레임워크를 모르는 비즈니스 모델과 규칙을 둔다. |
 | `Projects/Data` | 서울 Open API 클라이언트, DTO와 응답 변환, 캐시하는 `SeoulCrowdRepository`, 121곳 장소 GeoJSON(`BundledPlaceRepository`), 예시·목업 저장소 | API나 DB의 구체 타입을 Domain Entity로 변환하는 코드를 둔다. |
-| `Projects/Shared/Core` | 여러 모듈에서 쓰는 기반 코드, 앱 설정 접근, UIKit-SwiftUI 연결 도구 | 특정 기능에 종속되지 않는 공통 기반 코드를 둔다. |
+| `Projects/Shared/Core` | 여러 모듈에서 쓰는 기반 코드, 앱 설정 접근, 단계 색(`CongestionPalette`), UIKit-SwiftUI 연결 도구 | 특정 기능에 종속되지 않는 공통 기반 코드를 둔다. |
+| `Projects/Shared/CrowdPresentation` | 두 버전이 공유하는 혼잡도 화면 규칙: 문구(`CrowdCopy`), 접근성 식별자, 정렬·집계(`CrowdRanking`), 요약 문구, 흐름·한산한 시간 판단(`PlaceInsight`), 시트·지도 수치 | 두 버전에서 똑같아야 하는 값과 규칙을 둔다. SwiftUI·UIKit·지도 SDK를 import하지 않는다. |
 | `Projects/Shared/Featcher` | 네트워크 요청 실행을 실험·공유하는 모듈과 Demo·테스트 | 범용 요청 실행과 그 검증을 둔다. 기능별 API 정책은 Data에 둔다. |
 | `Projects/Shared/ThirdParty` | MapboxMaps, RxSwift, RxCocoa, RxRelay, ComposableArchitecture 패키지 연결 | 외부 패키지 제품 추가와 재노출을 관리한다. Rx 모듈만 `@_exported`로 재노출하고, MapboxMaps와 ComposableArchitecture는 사용하는 모듈에서 직접 `import`한다. |
 | `Projects/Shared/RxExtension` | ViewController 생명주기와 `mapToVoid` 같은 범용 Rx 확장 | 두 개 이상의 화면에서 재사용할 Rx 확장만 둔다. |
@@ -29,20 +30,27 @@ Yeobaek은 Tuist로 App, Feature, Domain, Data, Shared를 분리한 iOS 멀티 �
 
 ## UI 구현 기준
 
-- `MapBoxFeature`의 실제 화면은 UIKit ViewController로 구현하고 RxSwift와 RxCocoa로 ViewModel Input/Output을 연결한다.
-- `CrowdFeature`와 `MapFeature`는 SwiftUI + TCA로 구현한다. 기준은 [TCA 적용하기](tca.md)를 따른다.
-- 지도 홈은 Mapbox(UIKit) 위에 CrowdFeature(SwiftUI) 시트를 겹친다. 두 화면은 App이 조립하고 서로 직접 의존하지 않는다.
-- `MapBoxFeatureView` 같은 SwiftUI 타입은 UIKit 화면을 현재 App 진입점이나 Preview에 연결하는 어댑터다. Mapbox 화면의 주 UI 기술을 SwiftUI로 판단하지 않는다.
-- 새 화면은 지도 SDK를 직접 다루면 UIKit + RxSwift + MVVM, 정보 화면이면 SwiftUI + TCA를 기본으로 한다. 애매하면 구현 전에 결정한다.
+- 같은 화면을 SwiftUI 버전과 UIKit 버전으로 각각 만든다. 한 Feature 안에서 SwiftUI와 UIKit을 섞지 않는다.
+- SwiftUI 버전(`CrowdSwiftUIFeature`)은 지도까지 Mapbox SwiftUI `Map`으로 그리고, 화면 상태는 TCA로 관리한다. 기준은 [TCA 적용하기](tca.md)를 따른다.
+- UIKit 버전(`CrowdUIKitFeature`)은 Mapbox `MapView`를 쓰고, 화면은 `ViewType`·`ViewModelType` 계약과 RxSwift Input/Output으로 연결한다. 이동은 `CrowdUIKitCoordinator`가 `UINavigationController`로 맡는다.
+- 두 버전은 `CrowdPresentation`의 문구, 식별자, 규칙, 수치를 함께 쓰고, 같은 UI 테스트 시나리오를 통과해야 한다.
+- 화면을 바꿀 때는 두 버전을 같은 PR에서 함께 바꾼다.
+
+## 화면 구현 선택
+
+- `Configuration.xcconfig`의 `UI_IMPLEMENTATION`(`swiftui` 기본, `uikit`)이 Info.plist의 `UIImplementation`으로 들어간다.
+- 디버그 빌드에서는 실행 환경 변수 `UI_IMPLEMENTATION`이 빌드 설정보다 우선한다. UI 테스트가 이 값으로 두 버전을 번갈아 실행한다.
+- `AppRootView`는 SwiftUI 버전이면 `CrowdHomeView`를, UIKit 버전이면 `CrowdUIKitCoordinator.navigationController` 하나를 `UIViewControllerRepresentableContainer`로 감싸 보여 준다.
 
 ## 현재 의존 방향
 
 ```text
-App
+App ── UIImplementation으로 둘 중 하나를 루트에 표시
 ├─ Features
-│  ├─ CrowdFeature ─> Domain, Core, Shared/ThirdParty (ComposableArchitecture)
-│  └─ MapBoxFeature ──> Domain, 필요한 Shared 모듈
+│  ├─ CrowdSwiftUIFeature ─> Domain, Core, CrowdPresentation, ThirdParty (TCA, MapboxMaps)
+│  └─ CrowdUIKitFeature ──> Domain, Core, CrowdPresentation, RxExtension, ThirdParty (Rx, MapboxMaps)
 ├─ Data ──────────────> Domain
+├─ CrowdPresentation ─> Domain, Core
 ├─ Core ──────────────> Domain, Shared/ThirdParty
 ├─ Domain
 └─ ThirdParty
@@ -55,7 +63,7 @@ Shared/RxLab ────────> Shared/Core, Shared/ThirdParty
 
 핵심 원칙은 구현 계층이 추상 계층을 바라보는 것이다. `Data`는 `Domain`의 Repository protocol을 구현하고, Feature는 DTO가 아닌 Domain Entity를 사용한다. 외부 패키지는 Domain으로 전파하지 않는다.
 
-현재 App 타깃은 Data, Domain, Core, ThirdParty, MapBoxFeature, CrowdFeature를 의존한다. 구체 타입 생성은 `AppDIContainer`가 한곳에서 담당한다. 컨테이너가 `BundledPlaceRepository`와 `SeoulCrowdRepository`를 만들고, 같은 저장소를 `CrowdClient`(TCA)와 `MapBoxCrowdViewModel`(Rx)에 함께 넘긴다. `AppRootView`는 컨테이너에서 Store, Session과 화면만 전달받는다. Feature는 Data를 직접 의존하지 않는다. `MapBoxFeatureDemo`만 목업 조립을 위해 Data를 의존한다.
+App 타깃은 Data, Domain, Core, CrowdPresentation, ThirdParty와 두 Feature를 의존한다. 구체 타입 생성은 `AppDIContainer`가 한곳에서 담당한다. 컨테이너가 `BundledPlaceRepository`와 `SeoulCrowdRepository`를 만들고, SwiftUI 버전에는 `CrowdClient.live`로, UIKit 버전에는 `CrowdSnapshotStore`·`MapBoxCrowdViewModel`·`PlaceDetailViewModel`로 같은 저장소를 넘긴다. Feature는 Data를 직접 의존하지 않는다. `CrowdUIKitFeatureDemo`만 독립 실행 조립을 위해 Data를 의존한다.
 
 ## 화면 계층 공통 계약
 
@@ -68,15 +76,15 @@ Shared/RxLab ────────> Shared/Core, Shared/ThirdParty
 
 - 장소와 경계는 서울 열린데이터광장의 `서울시 주요 121장소 영역`과 `목록` 파일을 변환한 `Projects/Data/Resources/SeoulPlaces.geojson`에서 읽는다. 분류는 공식 5개(고궁·문화유산, 공원, 관광특구, 발달상권, 인구밀집지역)다.
 - 혼잡도와 12시간 예측은 `citydata_ppltn`, 상세는 `citydata`에서 받는다. `SeoulCrowdRepository`가 장소별 5분 캐시, 진행 중 요청 공유, 동시 요청 6개 제한을 맡는다.
-- 단계 색은 `Core`의 `CongestionPalette` 하나로 지도와 SwiftUI 화면이 함께 쓴다.
-- 지도 영역은 24% 채움과 2px 테두리로 그리고, 확대 수준 13 이상에서만 장소 이름 라벨을 표시한다. 영역을 누르면 상세 화면을 연다.
+- 단계 색은 `Core`의 `CongestionPalette` 하나로 두 버전의 지도와 화면이 함께 쓴다.
+- 지도 영역은 두 버전 모두 `CrowdMapStyle` 수치(24% 채움, 2px 테두리, 확대 수준 13 이상 라벨)로 그린다. 영역을 누르면 상세 화면을 연다.
 - 디자인의 "영역 안 건물만 칠하기"는 Mapbox `within` 필터가 다각형 건물에 동작하지 않아 적용하지 못했다. 건물 윤곽을 미리 잘라 둔 GeoJSON을 번들에 넣는 방식이 후속 후보다.
 - 데이터 도착만으로 카메라를 이동하지 않는다.
 
 ## Framework 구성
 
-- `CrowdFeature`, `MapFeature`, `MapBoxFeature`는 최종 앱과 Demo 앱에서 사용하는 static framework다.
-- `Domain`, `Data`, `Core`, `Featcher`, `ThirdParty`, `RxExtension`, `RxLab`은 dynamic framework다.
+- `CrowdSwiftUIFeature`, `MapFeature`, `CrowdUIKitFeature`는 최종 앱과 Demo 앱에서 사용하는 static framework다.
+- `Domain`, `Data`, `Core`, `CrowdPresentation`, `Featcher`, `ThirdParty`, `RxExtension`, `RxLab`은 dynamic framework다.
 - 실행 가능한 코드는 `YeobaekApp` 또는 각 Demo 앱이 최종적으로 연결하고 필요한 dynamic framework를 임베딩한다.
 - 제품 타입을 변경할 때는 기기 실행 시 중복 심볼과 `Library not loaded` 가능성을 함께 확인한다.
 
@@ -86,9 +94,9 @@ Shared/RxLab ────────> Shared/Core, Shared/ThirdParty
 
 | 변경 내용 | 기본 위치 | 함께 확인할 곳 |
 | --- | --- | --- |
-| 홈 시트·목록·상세 | `Projects/Features/CrowdFeature` | `CrowdClient`, TestStore 테스트 |
+| 혼잡도 화면(지도·시트·목록·상세) | `CrowdSwiftUIFeature`와 `CrowdUIKitFeature` **둘 다** | 공통 문구·규칙은 `CrowdPresentation`, 두 버전 UI 테스트(`CrowdHomeUITests`) |
+| 두 버전이 같아야 하는 문구·식별자·규칙·수치 | `Projects/Shared/CrowdPresentation` | `CrowdPresentationTests` |
 | MapKit 화면 동작 | `Projects/Features/MapFeature` | `MapFeatureDemo`, 위치 권한 |
-| Mapbox 화면 동작 | `Projects/Features/MapBoxFeature` | ViewModel Input/Output, `MapBoxSession`, `MapBoxFeatureDemo` |
 | 공공데이터 응답 모델 | `Projects/Data` | Domain Entity 변환, Repository 구현 |
 | 앱에서 사용하는 장소·혼잡도 모델 | `Projects/Domain` | Repository protocol과 UseCase |
 | 공통 앱 설정·브리지 | `Projects/Shared/Core` | Bundle 값의 실제 소유자인 실행 타깃 |

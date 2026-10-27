@@ -11,7 +11,7 @@ description: Yeobaek에서 실제로 실행해 확인한 테스트 타깃과 xco
 
 | 타깃 | 위치 | 검증 대상 |
 | --- | --- | --- |
-| `MapBoxFeatureTests` | `Projects/Features/MapBoxFeature/Tests` | 위치 요청 상태 전이, 카메라 명령, 알림, Session 기록, 지도 위치 점 연동 |
+| `CrowdUIKitFeatureTests` | `Projects/Features/CrowdUIKitFeature/Tests` | 위치 요청 상태 전이, 카메라 명령, 알림, Session 기록, 지도 위치 점 연동 |
 | `MapFeatureTests` | `Projects/Features/MapFeature/Tests` | MapKit 화면의 위치 요청과 좌표 유효성 |
 | `FeatcherTests` | `Projects/Shared/Featcher/Tests` | 네트워크 요청 유틸리티 |
 | `YeobaekAppUITests` | `Projects/App/UITests` | 혼잡도 홈의 요약 시트, 목록·상세 이동, Mapbox 내 위치 접근성 계약 |
@@ -34,10 +34,10 @@ xcrun simctl list devices available
 
 ## 단위 테스트
 
-`MapBoxFeature` Scheme은 framework, Demo 앱, 테스트 타깃을 함께 빌드한다.
+`CrowdUIKitFeature` Scheme은 framework, Demo 앱, 테스트 타깃을 함께 빌드한다.
 
 ```bash
-xcodebuild -workspace Yeobaek.xcworkspace -scheme MapBoxFeature -destination 'platform=iOS Simulator,id=<UDID>' test CODE_SIGNING_ALLOWED=NO
+xcodebuild -workspace Yeobaek.xcworkspace -scheme CrowdUIKitFeature -destination 'platform=iOS Simulator,id=<UDID>' test CODE_SIGNING_ALLOWED=NO
 ```
 
 ## UI 테스트

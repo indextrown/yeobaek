@@ -17,9 +17,9 @@ description: "여백 앱의 화면 상태, 비즈니스 규칙, 데이터 구현
 
 ## Yeobaek의 UI 구현 기준
 
-Yeobaek의 제품 Feature는 UIKit + RxSwift + MVVM을 기본으로 해요. `MapBoxFeature`는 UIKit ViewController가 화면을 구성하고 RxSwift와 RxCocoa로 ViewModel의 Input과 Output을 연결해요.
+혼잡도 화면은 같은 화면을 UIKit 버전과 SwiftUI 버전으로 각각 만들어요. UIKit 버전 `CrowdUIKitFeature`는 UIKit ViewController가 화면을 구성하고 RxSwift와 RxCocoa로 ViewModel의 Input과 Output을 연결해요.
 
-`MapFeature`만 SwiftUI + TCA로 구현하는 예외예요. 기준은 [TCA 적용하기](tca.md)에서 확인해요. App에 남아 있는 SwiftUI 진입점과 `MapBoxFeatureView` 같은 타입은 현재 UIKit 화면을 연결하기 위한 호스트 또는 래퍼이며, Mapbox 화면 자체의 구현 방식은 UIKit이에요.
+SwiftUI 버전 `CrowdSwiftUIFeature`와 `MapFeature`는 SwiftUI + TCA로 구현해요. 기준은 [TCA 적용하기](tca.md)에서 확인해요. 두 기술은 App 루트에서 UIKit 버전 전체를 `UIViewControllerRepresentable`로 감쌀 때만 만나요.
 | Clean Architecture | 계층과 의존 방향 정의 | 지도 SDK, 네트워크, GRDB가 Domain 규칙으로 들어오지 않게 해요. |
 | RxSwift | 입력과 출력의 비동기 연결 | 버튼 입력, 위치 조회, 로딩 상태, 오류 이벤트를 하나의 흐름으로 다뤄요. |
 | GRDB | SQLite 기반 로컬 저장 | 장소, 경계, 혼잡도 캐시를 명시적인 SQL과 migration으로 관리해요. |
@@ -170,7 +170,7 @@ Projects/
 │   └── Repositories/
 ├── Features/
 │   ├── MapFeature/
-│   └── MapBoxFeature/
+│   └── CrowdUIKitFeature/
 └── Shared/
     ├── Core/
     ├── Featcher/

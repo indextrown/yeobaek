@@ -110,7 +110,7 @@ Static이 항상 빠르고 Dynamic이 항상 느리다고 단정할 수는 없�
 | 모듈 | 종류 | 이유 |
 | --- | --- | --- |
 | `MapFeature` | Static Framework | 내부 Feature이며 App과 Demo에 각각 합치면 돼요. |
-| `MapBoxFeature` | Static Framework | Feature 코드를 최종 App 링크 단계에서 `ThirdParty`와 함께 해결해요. |
+| `CrowdUIKitFeature` | Static Framework | Feature 코드를 최종 App 링크 단계에서 `ThirdParty`와 함께 해결해요. |
 | `ThirdParty` | Dynamic Framework | 외부 SDK를 연결하는 허브 역할을 해요. |
 | `MapboxMaps` | Dynamic Framework | Mapbox가 제공하는 SDK 제품 정책을 따라요. |
 | `YeobaekApp` | App | Feature와 외부 SDK를 최종적으로 링크하고 임베드해요. |
@@ -122,11 +122,11 @@ Static이 항상 빠르고 Dynamic이 항상 느리다고 단정할 수는 없�
 
 ### `Undefined symbol`은 빌드할 때 발생해요
 
-`MapBoxFeature`가 Dynamic Framework였을 때 `MapboxMaps.Map`, `Viewport`, `MapStyle` 등의 `Undefined symbol` 오류가 발생했어요.
+`CrowdUIKitFeature`가 Dynamic Framework였을 때 `MapboxMaps.Map`, `Viewport`, `MapStyle` 등의 `Undefined symbol` 오류가 발생했어요.
 
-Swift 컴파일러는 `MapboxMaps` 모듈을 찾아 타입을 이해했지만, `MapBoxFeature.framework` 자체를 만드는 링크 단계에서는 실제 구현을 연결하지 못한 상태였어요. Dynamic Framework는 자신이 별도 바이너리이므로 자신의 링크 단계에서 필요한 심볼을 해결해야 해요.
+Swift 컴파일러는 `MapboxMaps` 모듈을 찾아 타입을 이해했지만, `CrowdUIKitFeature.framework` 자체를 만드는 링크 단계에서는 실제 구현을 연결하지 못한 상태였어요. Dynamic Framework는 자신이 별도 바이너리이므로 자신의 링크 단계에서 필요한 심볼을 해결해야 해요.
 
-`MapBoxFeature`를 Static Framework로 바꾸면 Feature의 코드는 별도 동적 바이너리로 완성되지 않아요. 최종 `YeobaekApp`을 링크할 때 Feature 코드와 `ThirdParty`, `MapboxMaps` 구현을 함께 연결하므로 심볼을 해결할 수 있어요.
+`CrowdUIKitFeature`를 Static Framework로 바꾸면 Feature의 코드는 별도 동적 바이너리로 완성되지 않아요. 최종 `YeobaekApp`을 링크할 때 Feature 코드와 `ThirdParty`, `MapboxMaps` 구현을 함께 연결하므로 심볼을 해결할 수 있어요.
 
 ### `Library not loaded`는 실행할 때 발생해요
 
