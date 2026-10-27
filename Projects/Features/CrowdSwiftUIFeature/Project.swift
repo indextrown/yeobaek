@@ -1,18 +1,19 @@
 import ProjectDescription
 
 let project = Project(
-    name: "CrowdFeature",
+    name: "CrowdSwiftUIFeature",
     targets: [
         .target(
-            name: "CrowdFeature",
+            name: "CrowdSwiftUIFeature",
             destinations: [.iPhone],
             product: .staticFramework,
-            bundleId: "com.indextrown.yeobaek.crowd-feature",
+            bundleId: "com.indextrown.yeobaek.crowd-swiftui-feature",
             deploymentTargets: .iOS("17.0"),
             sources: ["Sources/**"],
             dependencies: [
                 .project(target: "Domain", path: "../../Domain"),
                 .project(target: "Core", path: "../../Shared/Core"),
+                .project(target: "CrowdPresentation", path: "../../Shared/CrowdPresentation"),
                 .project(target: "ThirdParty", path: "../../Shared/ThirdParty"),
             ],
             settings: .settings(
@@ -22,13 +23,13 @@ let project = Project(
             )
         ),
         .target(
-            name: "CrowdFeatureTests",
+            name: "CrowdSwiftUIFeatureTests",
             destinations: [.iPhone],
             product: .unitTests,
-            bundleId: "com.indextrown.yeobaek.crowd-feature-tests",
+            bundleId: "com.indextrown.yeobaek.crowd-swiftui-feature-tests",
             deploymentTargets: .iOS("17.0"),
             sources: ["Tests/**"],
-            dependencies: [.target(name: "CrowdFeature")],
+            dependencies: [.target(name: "CrowdSwiftUIFeature")],
             settings: .settings(base: ["SWIFT_VERSION": "6.0"])
         ),
     ]

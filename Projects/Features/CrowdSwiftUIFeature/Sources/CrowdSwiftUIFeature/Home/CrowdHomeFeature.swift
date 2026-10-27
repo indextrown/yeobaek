@@ -1,10 +1,11 @@
 import ComposableArchitecture
+import CrowdPresentation
 import Domain
 import Foundation
 
-/// 지도 위 홈 시트와 목록·상세 이동을 관리하는 Reducer입니다.
+/// 지도, 현재 위치, 홈 시트와 목록·상세 이동을 관리하는 SwiftUI 버전 홈 Reducer입니다.
 ///
-/// 장소 121곳의 혼잡도를 한 번 받아 단계별 분포와 붐비는 순서를 보여 주고,
+/// 장소 121곳의 경계와 혼잡도를 한 번 받아 지도 영역, 단계별 분포와 붐비는 순서를 보여 주고,
 /// 받은 결과를 목록 화면에도 그대로 전달합니다.
 @Reducer
 public struct CrowdHomeFeature {
@@ -17,6 +18,8 @@ public struct CrowdHomeFeature {
     @ObservableState
     public struct State: Equatable {
         public var places: [Place] = []
+        public var areas: [AreaGeometry] = []
+        public var location = CurrentLocationFeature.State()
         public var snapshots: [Place.ID: CrowdSnapshot] = [:]
         public var failedPlaceIDs: Set<Place.ID> = []
         public var category: PlaceCategory?
@@ -68,6 +71,7 @@ public struct CrowdHomeFeature {
         case showAllTapped
         case placeTapped(Place.ID)
         case retryTapped
+        case location(CurrentLocationFeature.Action)
         case path(StackActionOf<Path>)
     }
 
@@ -76,6 +80,9 @@ public struct CrowdHomeFeature {
     public init() {}
 
     public var body: some ReducerOf<Self> {
+        Scope(state: \.location, action: \.location) {
+            CurrentLocationFeature()
+        }
         Reduce { state, action in
             switch action {
             case .onAppear:
@@ -87,10 +94,11 @@ public struct CrowdHomeFeature {
 
             case let .catalogResponse(.success(catalog)):
                 state.places = catalog.places
+                state.areas = catalog.areas
                 return loadSnapshots(for: catalog.places.map(\.id))
 
             case .catalogResponse(.failure):
-                state.catalogErrorMessage = "장소 목록을 읽지 못했어요."
+                state.catalogErrorMessage = CrowdCopy.catalogFailed
                 return .none
 
             case let .snapshotResponse(placeID, .success(snapshot)):
@@ -130,7 +138,7 @@ public struct CrowdHomeFeature {
                 openDetail(placeID, in: &state)
                 return .none
 
-            case .path:
+            case .location, .path:
                 return .none
             }
         }

@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import CrowdPresentation
 import Domain
 import SwiftUI
 
@@ -33,14 +34,14 @@ struct PlaceDetailView: View {
                         EventsSection(events: detail.events)
                     }
                 } else if store.isLoading {
-                    ProgressView("주변 정보를 불러오는 중")
+                    ProgressView(CrowdCopy.detailLoading)
                         .frame(maxWidth: .infinity)
                         .padding(32)
                 } else if let message = store.errorMessage {
                     DetailErrorView(message: message) { store.send(.retryTapped) }
                 }
 
-                Text("출처: 서울특별시 서울 실시간 도시데이터. 인구는 통신 데이터로 추정한 범위예요.")
+                Text(CrowdCopy.source)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -76,7 +77,7 @@ struct DetailHero: View {
                     .foregroundStyle(level.textColor)
                     Spacer()
                     if let snapshot {
-                        Text("\(CrowdFormat.time(snapshot.observedAt)) 기준")
+                        Text(CrowdCopy.observedAt(snapshot.observedAt))
                             .font(.caption)
                             .foregroundStyle(level.textColor)
                     }
@@ -85,7 +86,7 @@ struct DetailHero: View {
                     Text(message).font(.subheadline).lineSpacing(3)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("추정 인구").font(.footnote)
+                    Text(CrowdCopy.populationTitle).font(.footnote)
                     Text(CrowdFormat.population(snapshot?.population)).font(.title2.weight(.bold))
                 }
             }
@@ -104,11 +105,11 @@ struct FlowSection: View {
     let insight: PlaceInsight.Flow
 
     var body: some View {
-        DetailSection("지금 흐름") {
+        DetailSection(CrowdCopy.flowTitle) {
             HStack {
-                Text(description).font(.footnote).foregroundStyle(.secondary)
+                Text(CrowdCopy.flowDescription(insight)).font(.footnote).foregroundStyle(.secondary)
                 Spacer()
-                Label(title, systemImage: symbol)
+                Label(CrowdCopy.flowBadge(insight), systemImage: CrowdCopy.flowSymbol(insight))
                     .font(.caption.weight(.bold))
                     .foregroundStyle(.blue)
                     .padding(.horizontal, 10)
@@ -117,12 +118,12 @@ struct FlowSection: View {
             }
             HStack(spacing: 10) {
                 FlowCard(
-                    title: "지하철 \(flow.subwayStationCount)개 역",
+                    title: CrowdCopy.subwayCard(stationCount: flow.subwayStationCount),
                     boarding: flow.subwayBoarding,
                     alighting: flow.subwayAlighting
                 )
                 FlowCard(
-                    title: "버스 \(flow.busStopCount)개 정류소",
+                    title: CrowdCopy.busCard(stopCount: flow.busStopCount),
                     boarding: flow.busBoarding,
                     alighting: flow.busAlighting
                 )
@@ -130,29 +131,6 @@ struct FlowSection: View {
         }
     }
 
-    private var title: String {
-        switch insight {
-        case .gathering: "모이는 중"
-        case .leaving: "빠지는 중"
-        case .steady: "비슷해요"
-        }
-    }
-
-    private var symbol: String {
-        switch insight {
-        case .gathering: "arrow.up"
-        case .leaving: "arrow.down"
-        case .steady: "equal"
-        }
-    }
-
-    private var description: String {
-        switch insight {
-        case .gathering: "최근 30분 동안 내리는 사람이 더 많아요."
-        case .leaving: "최근 30분 동안 타는 사람이 더 많아요."
-        case .steady: "최근 30분 동안 타고 내리는 사람이 비슷해요."
-        }
-    }
 }
 
 /// 지하철 또는 버스의 승하차 인원 카드입니다.
@@ -164,8 +142,8 @@ struct FlowCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title).font(.footnote.weight(.semibold))
-            Text("승차 \(CrowdFormat.population(boarding))").font(.caption)
-            Text("하차 \(CrowdFormat.population(alighting))").font(.caption)
+            Text(CrowdCopy.boarding(boarding)).font(.caption)
+            Text(CrowdCopy.alighting(alighting)).font(.caption)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(14)
@@ -178,17 +156,17 @@ struct ForecastSection: View {
     let snapshot: CrowdSnapshot
 
     var body: some View {
-        DetailSection("앞으로 12시간") {
+        DetailSection(CrowdCopy.forecastTitle) {
             if let quietest = PlaceInsight.quietest(snapshot.forecasts) {
-                Text("가장 한산한 시간은 \(CrowdFormat.hour(quietest.time)) · \(CrowdFormat.population(quietest.population))")
+                Text(CrowdCopy.quietest(quietest))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
             ForecastBars(snapshot: snapshot)
                 .frame(height: 150)
             HStack(spacing: 14) {
-                LegendSwatch(color: .primary, title: "지금")
-                LegendSwatch(color: CongestionLevel.relaxed.fillColor, title: "예측 · 단계 색")
+                LegendSwatch(color: .primary, title: CrowdCopy.nowLegend)
+                LegendSwatch(color: CongestionLevel.relaxed.fillColor, title: CrowdCopy.forecastLegend)
             }
         }
     }
@@ -246,12 +224,12 @@ struct PeopleSection: View {
     let demographics: PlaceDemographics
 
     var body: some View {
-        DetailSection("지금 있는 사람들") {
+        DetailSection(CrowdCopy.peopleTitle) {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Text("남성 \(percent(demographics.maleRate))")
+                    Text("남성 \(CrowdCopy.percent(demographics.maleRate))")
                     Spacer()
-                    Text("여성 \(percent(demographics.femaleRate))")
+                    Text("여성 \(CrowdCopy.percent(demographics.femaleRate))")
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -269,47 +247,24 @@ struct PeopleSection: View {
             VStack(spacing: 8) {
                 ForEach(demographics.ageRates, id: \.decade) { age in
                     HStack(spacing: 10) {
-                        Text(ageTitle(age.decade)).font(.caption).foregroundStyle(.secondary).frame(width: 56, alignment: .leading)
+                        Text(CrowdCopy.ageTitle(age.decade)).font(.caption).foregroundStyle(.secondary).frame(width: 56, alignment: .leading)
                         GeometryReader { proxy in
                             Capsule().fill(Color.primary.opacity(0.75))
                                 .frame(width: proxy.size.width * age.rate / maximum)
                         }
                         .frame(height: 8)
-                        Text(percent(age.rate)).font(.caption.weight(.semibold)).frame(width: 44, alignment: .trailing)
+                        Text(CrowdCopy.percent(age.rate)).font(.caption.weight(.semibold)).frame(width: 44, alignment: .trailing)
                     }
                 }
             }
             if let nonResident = demographics.nonResidentRate {
-                Text("이 지역에 살지 않는 방문자가 \(percent(nonResident))예요.")
+                Text(CrowdCopy.nonResident(nonResident))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
         }
     }
 
-    /// 백분율을 소수 한 자리로 표시합니다.
-    ///
-    /// - Parameter value: 0~100 사이 값입니다.
-    /// - Returns: `23.2%` 형태의 문구입니다.
-    private func percent(
-        _ value: Double
-    ) -> String {
-        String(format: "%.1f%%", value)
-    }
-
-    /// 연령대 이름을 만듭니다.
-    ///
-    /// - Parameter decade: 연령대 시작 나이입니다.
-    /// - Returns: `10세 미만`, `20대`, `70대 이상` 같은 이름입니다.
-    private func ageTitle(
-        _ decade: Int
-    ) -> String {
-        switch decade {
-        case 0: "10세 미만"
-        case 70: "70대 이상"
-        default: "\(decade)대"
-        }
-    }
 }
 
 /// 카드 결제 기반 상권 활성도를 보여 줍니다.
@@ -317,7 +272,7 @@ struct CommerceSection: View {
     let commerce: CommerceSummary
 
     var body: some View {
-        DetailSection("주변 상권", trailing: commerce.activity) {
+        DetailSection(CrowdCopy.commerceTitle, trailing: commerce.activity) {
             VStack(spacing: 0) {
                 ForEach(Array(commerce.categories.enumerated()), id: \.offset) { index, category in
                     HStack {
@@ -330,7 +285,7 @@ struct CommerceSection: View {
                     if index < commerce.categories.count - 1 { Divider() }
                 }
             }
-            Text("카드 결제 데이터 기준").font(.caption).foregroundStyle(.secondary)
+            Text(CrowdCopy.commerceFootnote).font(.caption).foregroundStyle(.secondary)
         }
     }
 }
@@ -340,7 +295,7 @@ struct MoveSection: View {
     let detail: PlaceDetail
 
     var body: some View {
-        DetailSection("가는 방법") {
+        DetailSection(CrowdCopy.moveTitle) {
             ForEach(Array(detail.subwayArrivals.prefix(4).enumerated()), id: \.offset) { _, arrival in
                 HStack {
                     Text("\(arrival.stationName) \(arrival.line)").font(.subheadline.weight(.semibold))
@@ -350,8 +305,8 @@ struct MoveSection: View {
                 }
             }
             HStack(spacing: 10) {
-                InfoTile(title: "주변 도로", value: detail.roadStatus ?? "정보 없음")
-                InfoTile(title: "주차장", value: "\(detail.parkingLotCount)곳")
+                InfoTile(title: CrowdCopy.roadTitle, value: detail.roadStatus ?? CrowdCopy.unknown)
+                InfoTile(title: CrowdCopy.parkingTitle, value: CrowdCopy.placeCount(detail.parkingLotCount))
             }
         }
     }
@@ -379,13 +334,13 @@ struct WeatherSection: View {
     let weather: WeatherSummary
 
     var body: some View {
-        DetailSection("날씨") {
+        DetailSection(CrowdCopy.weatherTitle) {
             HStack(spacing: 16) {
-                Text(String(format: "%.1f°", weather.temperature)).font(.largeTitle.weight(.semibold))
+                Text(CrowdCopy.temperature(weather.temperature)).font(.largeTitle.weight(.semibold))
                 VStack(alignment: .leading, spacing: 2) {
-                    Text([weather.sky, weather.precipitationMessage].compactMap { $0 }.joined(separator: " · "))
+                    Text(CrowdCopy.weatherSummary(weather))
                         .font(.footnote)
-                    Text("미세먼지 \(weather.fineDust ?? "정보 없음") · 초미세먼지 \(weather.ultraFineDust ?? "정보 없음")")
+                    Text(CrowdCopy.dust(weather))
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -399,7 +354,7 @@ struct EventsSection: View {
     let events: [PlaceEvent]
 
     var body: some View {
-        DetailSection("주변 행사", trailing: "\(events.count)건") {
+        DetailSection(CrowdCopy.eventsTitle, trailing: CrowdCopy.eventCount(events.count)) {
             ForEach(Array(events.prefix(3).enumerated()), id: \.offset) { _, event in
                 EventRow(event: event)
             }
@@ -414,7 +369,7 @@ struct EventRow: View {
     var body: some View {
         let content = VStack(alignment: .leading, spacing: 2) {
             Text(event.name).font(.subheadline.weight(.semibold)).foregroundStyle(.primary)
-            Text([event.period, event.venue].compactMap { $0 }.joined(separator: " · "))
+            Text(CrowdCopy.eventSubtitle(event))
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -436,7 +391,7 @@ struct DetailErrorView: View {
     var body: some View {
         VStack(spacing: 12) {
             Text(message).font(.subheadline).foregroundStyle(.secondary)
-            Button("다시 시도", action: onRetry).buttonStyle(.bordered)
+            Button(CrowdCopy.retryDetail, action: onRetry).buttonStyle(.bordered)
         }
         .frame(maxWidth: .infinity)
         .padding(24)

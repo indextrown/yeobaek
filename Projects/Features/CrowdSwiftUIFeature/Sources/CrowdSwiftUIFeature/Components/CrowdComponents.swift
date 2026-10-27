@@ -1,4 +1,5 @@
 import Core
+import CrowdPresentation
 import Domain
 import SwiftUI
 
@@ -39,7 +40,7 @@ struct CategoryChips: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 6) {
-                CategoryChip(title: "전체", isSelected: selected == nil) { onSelect(nil) }
+                CategoryChip(title: CrowdCopy.allCategories, isSelected: selected == nil) { onSelect(nil) }
                 ForEach(PlaceCategory.allCases, id: \.self) { category in
                     CategoryChip(title: category.rawValue, isSelected: selected == category) { onSelect(category) }
                 }
@@ -99,9 +100,7 @@ struct PlaceRow: View {
     }
 
     private var subtitle: String {
-        let category = place.category?.rawValue ?? "장소"
-        guard let snapshot else { return "\(category) · 불러오는 중" }
-        return "\(category) · 추정 \(CrowdFormat.population(snapshot.population))"
+        CrowdCopy.placeSubtitle(place, snapshot: snapshot)
     }
 }
 

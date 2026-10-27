@@ -1,4 +1,5 @@
 import ComposableArchitecture
+import CrowdPresentation
 import Domain
 import SwiftUI
 
@@ -10,13 +11,13 @@ struct PlaceListView: View {
         let places = store.visiblePlaces
         VStack(spacing: 0) {
             VStack(spacing: 12) {
-                PlaceSearchField(text: $store.searchText)
+                PlaceSearchField(text: $store.searchText, placeholder: CrowdCopy.listSearchPlaceholder(total: store.places.count))
                 CategoryChips(selected: store.category) { store.send(.categoryTapped($0)) }
             }
             .padding(.bottom, 8)
 
             HStack {
-                Text("\(places.count)곳")
+                Text(CrowdCopy.placeCount(places.count))
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Spacer()
@@ -24,14 +25,14 @@ struct PlaceListView: View {
                     store.send(.sortToggled)
                 } label: {
                     HStack(spacing: 4) {
-                        Text(store.sort == .crowding ? "붐비는 순" : "인구 많은 순")
+                        Text(CrowdCopy.sortTitle(store.sort))
                         Image(systemName: "arrow.up.arrow.down")
                     }
                     .font(.footnote.weight(.semibold))
                     .frame(minHeight: 36)
                 }
                 .buttonStyle(.plain)
-                .accessibilityHint("정렬 기준을 바꿉니다")
+                .accessibilityHint(CrowdCopy.sortHint)
             }
             .padding(.horizontal, 16)
 
@@ -46,11 +47,13 @@ struct PlaceListView: View {
             .listStyle(.plain)
             .overlay {
                 if places.isEmpty {
-                    ContentUnavailableView.search(text: store.searchText)
+                    Text(CrowdCopy.noSearchResults)
+                        .font(.body)
+                        .foregroundStyle(.secondary)
                 }
             }
         }
-        .navigationTitle("장소 목록")
+        .navigationTitle(CrowdCopy.listTitle)
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -58,14 +61,15 @@ struct PlaceListView: View {
 /// 목록 상단의 장소 검색 입력란입니다.
 struct PlaceSearchField: View {
     @Binding var text: String
+    let placeholder: String
 
     var body: some View {
         HStack(spacing: 10) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
-            TextField("121곳 중에서 찾기", text: $text)
+            TextField(placeholder, text: $text)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .accessibilityIdentifier("crowd-list-search-field")
+                .accessibilityIdentifier(CrowdAccessibilityID.listSearchField)
         }
         .padding(.horizontal, 14)
         .frame(height: 44)

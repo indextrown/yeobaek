@@ -1,8 +1,9 @@
 import ComposableArchitecture
+import CrowdPresentation
 import Domain
 import Foundation
 import Testing
-@testable import CrowdFeature
+@testable import CrowdSwiftUIFeature
 
 private let observedAt = Date(timeIntervalSince1970: 1_793_029_500)
 private let gwanghwamun = Place(id: "POI009", name: "광화문·덕수궁", category: .heritage)
@@ -146,9 +147,9 @@ struct CrowdHomeFeatureTests {
         let counts: ([CongestionLevel: Int]) -> [CrowdRanking.LevelCount] = { values in
             [.relaxed, .normal, .busy, .crowded, .unknown].map { CrowdRanking.LevelCount(level: $0, count: values[$0] ?? 0) }
         }
-        #expect(HomeSummaryText.make(counts: counts([.relaxed: 120, .busy: 1]), isLoading: false, loadedCount: 121, totalCount: 121, catalogError: nil) == "대부분 한산해요. 1곳이 약간 붐벼요.")
-        #expect(HomeSummaryText.make(counts: counts([.crowded: 2]), isLoading: false, loadedCount: 2, totalCount: 2, catalogError: nil) == "붐비는 곳이 2곳 있어요.")
-        #expect(HomeSummaryText.make(counts: counts([:]), isLoading: true, loadedCount: 3, totalCount: 121, catalogError: nil) == "혼잡도를 불러오는 중이에요 (3/121)")
+        #expect(CrowdSummaryText.make(counts: counts([.relaxed: 120, .busy: 1]), isLoading: false, loadedCount: 121, totalCount: 121, catalogError: nil) == "대부분 한산해요. 1곳이 약간 붐벼요.")
+        #expect(CrowdSummaryText.make(counts: counts([.crowded: 2]), isLoading: false, loadedCount: 2, totalCount: 2, catalogError: nil) == "붐비는 곳이 2곳 있어요.")
+        #expect(CrowdSummaryText.make(counts: counts([:]), isLoading: true, loadedCount: 3, totalCount: 121, catalogError: nil) == "혼잡도를 불러오는 중이에요 (3/121)")
     }
 }
 
