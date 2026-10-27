@@ -78,6 +78,18 @@ let project = Project(
             settings: .settings(
                 base: [
                     "SWIFT_VERSION": "6.0",
+                    "CODE_SIGN_STYLE": "Automatic",
+                ],
+                configurations: [
+                    // 실기기 UI 테스트도 앱과 같은 서명 팀(DEVELOPMENT_TEAM)을 쓰도록 같은 xcconfig를 읽습니다.
+                    .debug(
+                        name: "Debug",
+                        xcconfig: .relativeToManifest("Configuration.xcconfig")
+                    ),
+                    .release(
+                        name: "Release",
+                        xcconfig: .relativeToManifest("Configuration.xcconfig")
+                    ),
                 ]
             )
         ),
