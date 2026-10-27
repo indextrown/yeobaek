@@ -10,7 +10,7 @@
 | ---: | --- | --- |
 | 1 | 이 문서 | 모든 작업을 시작할 때 확인한다. |
 | 2 | [`docs/architecture/architecture-overview.md`](docs/architecture/architecture-overview.md) | 기능 위치, 모듈 책임 또는 의존 관계를 판단할 때 확인한다. |
-| 3 | [`docs/architecture/app-startup-flow.md`](docs/architecture/app-startup-flow.md) | 앱 진입점, 루트 화면, 지도 전환, 세션 또는 앱 설정을 변경할 때 확인한다. |
+| 3 | [`docs/architecture/app-startup-flow.md`](docs/architecture/app-startup-flow.md) | 앱 진입점, 루트 화면, `AppDIContainer`, Store·세션 생성 위치 또는 앱 설정을 변경할 때 확인한다. |
 | 4 | [`docs/architecture/mvvm-clean-architecture-rxswift.md`](docs/architecture/mvvm-clean-architecture-rxswift.md) | Feature, Domain, Data, Repository, MVVM 또는 RxSwift 경계를 변경할 때 확인한다. |
 
 ## 역할별 필수 문서
@@ -18,7 +18,8 @@
 | 작업 영역 | 필수 문서 | 확인할 내용 |
 | --- | --- | --- |
 | Feature 화면 | [`architecture-overview.md`](docs/architecture/architecture-overview.md), [`mvvm-clean-architecture-rxswift.md`](docs/architecture/mvvm-clean-architecture-rxswift.md) | 화면 책임, Input/Output, 의존 가능한 모듈 |
-| 앱 시작·지도 전환 | [`app-startup-flow.md`](docs/architecture/app-startup-flow.md) | 세션 생성 위치, 기본 지도, 루트 화면 조립 |
+| UIKit 화면 계약 | [`view-viewmodel-protocols.md`](docs/architecture/view-viewmodel-protocols.md) | `ViewType`, `ViewModelType`, 화면별 프로토콜과 `loadView()` 주입 |
+| 앱 시작·객체 조립 | [`app-startup-flow.md`](docs/architecture/app-startup-flow.md), [`dicontainer.md`](docs/architecture/dicontainer.md) | `AppDIContainer`의 Repository·Store·Session 생성, 루트 화면 조립 |
 | Domain·Data | [`architecture-overview.md`](docs/architecture/architecture-overview.md), [`mvvm-clean-architecture-rxswift.md`](docs/architecture/mvvm-clean-architecture-rxswift.md) | Entity, DTO, Repository protocol과 구현의 경계 |
 | RxSwift·RxCocoa | [`rxswift-guide.md`](docs/development/rxswift-guide.md) | Observable, Relay, Driver, Signal과 UI 바인딩 기준 |
 | SwiftUI·TCA | [`tca.md`](docs/architecture/tca.md) | Reducer, Dependency Client, Store 소유 위치, TestStore 테스트 기준 |
@@ -29,9 +30,11 @@
 
 ## 모듈 경계
 
-- `App`은 앱 진입점과 최종 객체 조립을 담당한다. 비즈니스 규칙이나 네트워크 구현을 두지 않는다.
+- `App`은 SwiftUI `@main` 진입점과 최종 객체 조립을 담당한다. 구체 타입 생성은 `AppDIContainer` 한곳에서 하고, `AppRootView`는 컨테이너에서 Store, Session과 화면만 받는다. 비즈니스 규칙이나 네트워크 구현을 두지 않는다.
 - `Features`는 사용자 화면과 화면 상태를 담당한다. 다른 Feature를 직접 의존하기보다 `Domain` 또는 필요한 `Shared` 모듈을 통해 협력한다.
-- 지도 화면(`MapBoxFeature`)은 UIKit + RxSwift + MVVM으로 구현한다. 지도 위 시트와 목록·상세 같은 정보 화면(`CrowdFeature`)과 `MapFeature`는 SwiftUI + TCA로 구현한다. `MapBoxFeature`의 SwiftUI 타입은 UIKit 화면을 App과 Preview에 연결하는 래퍼로 한정한다.
+- 앱의 바깥 틀은 SwiftUI이고, 화면은 UIKit과 SwiftUI를 함께 쓴다. 지도 SDK를 직접 다루는 화면(`MapBoxFeature`)은 UIKit + RxSwift + MVVM으로, 지도 위 시트와 목록·상세 같은 정보 화면(`CrowdFeature`)은 SwiftUI + TCA로 구현한다. 새 화면도 이 기준을 따르고, 애매하면 구현 전에 결정한다.
+- UIKit 화면은 SwiftUI 계층에 `Core`의 `UIViewControllerRepresentableContainer`로 연결한다. `MapBoxFeature`의 SwiftUI 타입은 이 연결을 위한 래퍼로 한정한다.
+- `MapFeature`(SwiftUI + TCA + MapKit)는 현재 App에 포함하지 않고 독립 Demo로만 실행한다.
 - SwiftUI Feature는 지도 구현을 직접 의존하지 않는다. App이 지도 View를 주입하고, 지도 이벤트는 Session 콜백으로 Store에 전달한다.
 - `Domain`은 Entity, Repository protocol, UseCase와 비즈니스 규칙을 담당한다. UIKit, MapKit, Mapbox, RxSwift, GRDB 같은 구현 기술에 의존하지 않는다.
 - `Data`는 DTO, 외부 응답 변환, Repository 구현을 담당하고 `Domain`을 의존한다.
@@ -42,7 +45,7 @@
 
 ## 구현 기준
 
-- MVVM의 입력과 출력은 가능한 한 `Input`과 `Output`으로 명시하고, ViewController는 이벤트 전달과 렌더링에 집중한다.
+- MVVM의 입력과 출력은 가능한 한 `Input`과 `Output`으로 명시하고, ViewController는 이벤트 전달과 렌더링에 집중한다. UIKit 화면은 `Core`의 `ViewType`·`ViewModelType`을 채택하고, View를 `UIView`로 분리해 `loadView()`에서 주입받는다.
 - UI 이벤트는 RxCocoa의 `ControlEvent`, 화면 출력은 `Driver` 또는 `Signal`을 우선 검토한다.
 - SwiftUI 하위 화면은 `some View`를 반환하는 계산 속성이나 메서드로 만들지 않고 별도 `View` 구조체로 분리한다. 하위 구조체에는 Store 대신 필요한 값과 액션 클로저만 전달한다.
 - API 응답 DTO를 Feature에 직접 노출하지 않는다. Data에서 Domain Entity로 변환한다.
@@ -55,7 +58,7 @@
 ## 문서 갱신 기준
 
 - 모듈 책임, 제품 타입 또는 의존 방향이 바뀌면 `architecture-overview.md`를 갱신한다.
-- `YeobaekApp`, `AppRootView`, 지도 선택 방식, 세션 생성 위치 또는 앱 시작 초기화가 바뀌면 `app-startup-flow.md`를 갱신한다.
+- `YeobaekApp`, `AppRootView`, `AppDIContainer`, Store·세션 생성 위치 또는 앱 시작 초기화가 바뀌면 `app-startup-flow.md`와 `dicontainer.md`를 갱신한다.
 - MVVM, Clean Architecture, Repository 또는 GRDB 적용 원칙이 바뀌면 `mvvm-clean-architecture-rxswift.md`를 갱신한다.
 - Scheme, Demo 앱, Preview 호스트, Bundle 또는 xcconfig 연결이 바뀌면 `xcode-target-scheme-bundle-preview.md`를 갱신한다.
 - 한 화면에서만 쓰이는 임시 실험은 별도 문서로 만들지 않는다. 여러 작업에서 반복해서 확인할 정보만 문서로 남긴다.

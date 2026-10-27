@@ -15,9 +15,9 @@ Yeobaek은 Tuist로 App, Feature, Domain, Data, Shared를 분리한 iOS 멀티 �
 
 | 영역 | 현재 책임 | 새 코드를 둘 때 |
 | --- | --- | --- |
-| `Projects/App` | `@main` 진입점, 루트 화면, 지도 제공자 전환, 앱 설정과 리소스 | 앱 전체에서 한 번만 결정하는 조립과 시작 흐름을 둔다. |
+| `Projects/App` | SwiftUI `@main` 진입점, `AppDIContainer`, 혼잡도 홈 루트 화면, 앱 설정과 리소스 | 앱 전체에서 한 번만 결정하는 조립과 시작 흐름을 둔다. |
 | `Projects/Features/CrowdFeature` | SwiftUI + TCA 기반 혼잡도 홈 시트, 장소 목록, 장소 상세 | 지도 위 요약과 정보 화면을 둔다. 지도는 App이 `CrowdHomeView`에 주입하고, 조회는 `CrowdClient` 의존성으로 한다. |
-| `Projects/Features/MapFeature` | SwiftUI + TCA + MapKit 기반 지도 화면과 독립 실행 Demo (현재 App에는 포함하지 않음) | 프로젝트에서 유일하게 SwiftUI + TCA로 구현하는 Feature이며 `MapKitFeature` Reducer, `LocationClient` 의존성, MapKit 전용 UI를 둔다. |
+| `Projects/Features/MapFeature` | SwiftUI + TCA + MapKit 기반 지도 화면과 독립 실행 Demo (현재 App에는 포함하지 않음) | `MapKitFeature` Reducer, `LocationClient` 의존성, MapKit 전용 UI를 둔다. |
 | `Projects/Features/MapBoxFeature` | UIKit + RxSwift + MVVM 기반 Mapbox 바탕 지도, 121곳 혼잡도 영역·라벨·탭, App 연결용 SwiftUI 래퍼, 독립 실행 Demo | 위치 조회와 혼잡도 조회를 분리하고 Domain 경계를 Mapbox 표현으로 변환한다. |
 | `Projects/Domain` | 장소, 좌표, 혼잡도 같은 Entity와 Repository protocol | 외부 프레임워크를 모르는 비즈니스 모델과 규칙을 둔다. |
 | `Projects/Data` | 서울 Open API 클라이언트, DTO와 응답 변환, 캐시하는 `SeoulCrowdRepository`, 121곳 장소 GeoJSON(`BundledPlaceRepository`), 예시·목업 저장소 | API나 DB의 구체 타입을 Domain Entity로 변환하는 코드를 둔다. |
@@ -33,7 +33,7 @@ Yeobaek은 Tuist로 App, Feature, Domain, Data, Shared를 분리한 iOS 멀티 �
 - `CrowdFeature`와 `MapFeature`는 SwiftUI + TCA로 구현한다. 기준은 [TCA 적용하기](tca.md)를 따른다.
 - 지도 홈은 Mapbox(UIKit) 위에 CrowdFeature(SwiftUI) 시트를 겹친다. 두 화면은 App이 조립하고 서로 직접 의존하지 않는다.
 - `MapBoxFeatureView` 같은 SwiftUI 타입은 UIKit 화면을 현재 App 진입점이나 Preview에 연결하는 어댑터다. Mapbox 화면의 주 UI 기술을 SwiftUI로 판단하지 않는다.
-- 새로운 제품 Feature는 별도 결정이 없다면 UIKit + RxSwift + MVVM을 기본으로 한다.
+- 새 화면은 지도 SDK를 직접 다루면 UIKit + RxSwift + MVVM, 정보 화면이면 SwiftUI + TCA를 기본으로 한다. 애매하면 구현 전에 결정한다.
 
 ## 현재 의존 방향
 
@@ -51,7 +51,7 @@ Shared/RxExtension ──> Shared/ThirdParty
 Shared/RxLab ────────> Shared/Core, Shared/ThirdParty
 ```
 
-`Core`는 화면 계층의 공통 계약인 `ViewType`과 `ViewModelType`을 제공하므로 `ThirdParty`를 통해 RxSwift의 `DisposeBag`을 의존한다. `MapFeature`는 의존성이 없는 SwiftUI 모듈이라 이 의존이 전파되지 않는다.
+`Core`는 화면 계층의 공통 계약인 `ViewType`과 `ViewModelType`을 제공하므로 `ThirdParty`를 통해 RxSwift의 `DisposeBag`을 의존한다. `MapFeature`는 TCA를 위해 `ThirdParty`만 의존하고 `Core`는 의존하지 않는다.
 
 핵심 원칙은 구현 계층이 추상 계층을 바라보는 것이다. `Data`는 `Domain`의 Repository protocol을 구현하고, Feature는 DTO가 아닌 Domain Entity를 사용한다. 외부 패키지는 Domain으로 전파하지 않는다.
 
