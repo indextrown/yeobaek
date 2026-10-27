@@ -1,13 +1,33 @@
 import XCTest
 
+/// SwiftUI 버전에서 혼잡도 홈 공통 시나리오를 실행합니다.
+final class SwiftUICrowdHomeUITests: CrowdHomeUITests {
+    override class var implementation: String? { "swiftui" }
+}
+
+/// UIKit 버전에서 혼잡도 홈 공통 시나리오를 실행합니다.
+final class UIKitCrowdHomeUITests: CrowdHomeUITests {
+    override class var implementation: String? { "uikit" }
+}
+
 /// 혼잡도 홈의 지도, 요약 시트, 목록·상세 이동과 내 위치 접근성 계약을 검증합니다.
+///
+/// 같은 화면을 SwiftUI와 UIKit으로 각각 만들었으므로 하위 클래스가 `UI_IMPLEMENTATION`만 바꿔
+/// 같은 시나리오를 두 번 실행합니다. 이 기본 클래스 자체는 실행하지 않습니다.
 @MainActor
-final class CurrentLocationAccessibilityTests: XCTestCase {
+class CrowdHomeUITests: XCTestCase {
+    /// 실행할 화면 구현입니다. `nil`이면 이 클래스의 테스트를 건너뜁니다.
+    class var implementation: String? { nil }
+
     private var app: XCUIApplication!
 
     override func setUpWithError() throws {
+        guard let implementation = Self.implementation else {
+            throw XCTSkip("공통 시나리오는 SwiftUI·UIKit 하위 클래스에서 실행합니다.")
+        }
         continueAfterFailure = false
         app = XCUIApplication()
+        app.launchEnvironment["UI_IMPLEMENTATION"] = implementation
         app.launchEnvironment["UITEST_LOCATION_SCENARIO"] = "success"
         app.launchEnvironment["UITEST_CROWD_SCENARIO"] = "sample"
     }
@@ -51,7 +71,9 @@ final class CurrentLocationAccessibilityTests: XCTestCase {
         XCTAssertTrue(searchField.waitForExistence(timeout: 10))
         searchField.tap()
         searchField.typeText("광화문")
-        let row = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "광화문·덕수궁")).firstMatch
+        let row = app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label BEGINSWITH %@ AND label CONTAINS %@", "광화문·덕수궁", "추정"))
+            .element(boundBy: 0)
         XCTAssertTrue(row.waitForExistence(timeout: 10))
         row.tap()
 

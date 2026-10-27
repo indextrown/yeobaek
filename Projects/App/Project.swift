@@ -27,6 +27,7 @@ let project = Project(
                     ],
                     "NSLocationWhenInUseUsageDescription": "현재 위치로 지도를 이동하기 위해 위치 정보가 필요합니다.",
                     "SeoulAPIKey": "$(SEOUL_API_KEY)",
+                    "UIImplementation": "$(UI_IMPLEMENTATION)",
                     "UILaunchScreen": [:],
                     "UISupportedInterfaceOrientations": [
                         "UIInterfaceOrientationPortrait",
@@ -40,8 +41,8 @@ let project = Project(
                 .project(target: "Domain", path: "../Domain"),
                 .project(target: "Core", path: "../Shared/Core"),
                 .project(target: "ThirdParty", path: "../Shared/ThirdParty"),
-                .project(target: "MapBoxFeature", path: "../Features/MapBoxFeature"),
-                .project(target: "CrowdFeature", path: "../Features/CrowdFeature"),
+                .project(target: "CrowdUIKitFeature", path: "../Features/CrowdUIKitFeature"),
+                .project(target: "CrowdSwiftUIFeature", path: "../Features/CrowdSwiftUIFeature"),
             ],
             settings: .settings(
                 base: [

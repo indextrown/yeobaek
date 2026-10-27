@@ -1,15 +1,17 @@
-import CrowdFeature
-import MapBoxFeature
+import Core
+import CrowdSwiftUIFeature
 import SwiftUI
 
-/// Mapbox 지도 위에 혼잡도 홈 시트를 올리고 목록·상세 이동을 연결하는 루트 화면입니다.
+/// 설정한 화면 구현(SwiftUI 또는 UIKit)으로 혼잡도 화면 전체를 그리는 루트 화면입니다.
+///
+/// 두 구현은 섞지 않습니다. UIKit 버전은 루트 내비게이션 하나만 `UIViewControllerRepresentable`로 감쌉니다.
 struct AppRootView: View {
-    /// 홈 Store, 지도 세션과 화면 조립을 담당하는 앱 전역 컨테이너입니다.
+    /// 두 구현의 Store, 코디네이터와 화면 조립을 담당하는 앱 전역 컨테이너입니다.
     private let container: AppDIContainer
 
     /// 앱 전역 의존성을 주입해 루트 화면을 만듭니다.
     ///
-    /// - Parameter container: 홈 Store와 지도 화면을 조립할 DI Container입니다.
+    /// - Parameter container: 화면 구현과 의존성을 고른 DI Container입니다.
     init(
         container: AppDIContainer
     ) {
@@ -17,16 +19,14 @@ struct AppRootView: View {
     }
 
     var body: some View {
-        CrowdHomeView(
-            store: container.crowdHomeStore,
-            onSheetHeightChange: { container.mapBoxSession.updateControlsBottomInset($0) }
-        ) {
-            MapBoxFeatureView(
-                session: container.mapBoxSession,
-                makeViewController: {
-                    container.makeMapBoxFeatureViewController()
-                }
+        switch container.implementation {
+        case .swiftUI:
+            CrowdHomeView(store: container.crowdHomeStore)
+        case .uiKit:
+            UIViewControllerRepresentableContainer(
+                makeContent: { container.crowdUIKitCoordinator.navigationController }
             )
+            .ignoresSafeArea()
         }
     }
 }

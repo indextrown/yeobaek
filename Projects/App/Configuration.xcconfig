@@ -2,4 +2,7 @@
 MAPBOX_ACCESS_TOKEN =
 SEOUL_API_KEY =
 
+// 앱 화면 구현을 고릅니다. swiftui(기본) 또는 uikit
+UI_IMPLEMENTATION = swiftui
+
 #include? "Secrets.xcconfig"

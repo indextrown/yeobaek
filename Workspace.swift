@@ -7,12 +7,13 @@ let workspace = Workspace(
         "Projects/Data",
         "Projects/Domain",
         "Projects/Shared/Core",
+        "Projects/Shared/CrowdPresentation",
         "Projects/Shared/Featcher",
         "Projects/Shared/RxExtension",
         "Projects/Shared/RxLab",
         "Projects/Shared/ThirdParty",
         "Projects/Features/MapFeature",
-        "Projects/Features/MapBoxFeature",
-        "Projects/Features/CrowdFeature",
+        "Projects/Features/CrowdUIKitFeature",
+        "Projects/Features/CrowdSwiftUIFeature",
     ]
 )
