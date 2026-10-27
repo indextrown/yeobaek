@@ -35,6 +35,9 @@ final class MapBoxCrowdRenderer {
     /// 현재 라벨을 표시하고 있는지 여부입니다.
     private var showsLabels: Bool
 
+    /// 다크 모드면 라벨 글자를 밝은 단계 색과 어두운 테두리로 그립니다.
+    var isDarkAppearance = false
+
     /// 스타일 로드가 끝난 지도에 혼잡도 레이어를 준비합니다.
     ///
     /// - Parameters:
@@ -48,6 +51,10 @@ final class MapBoxCrowdRenderer {
         outlines = mapView.annotations.makePolylineAnnotationManager()
         labels = mapView.annotations.makePointAnnotationManager()
         labels.textAllowOverlap = false
+        // Standard 스타일의 밤 조명이 혼잡도 색까지 어둡게 하지 않도록 조명 영향을 받지 않게 합니다.
+        polygons.fillEmissiveStrength = 1
+        outlines.lineEmissiveStrength = 1
+        labels.textEmissiveStrength = 1
         showsLabels = mapView.mapboxMap.cameraState.zoom >= Self.labelMinimumZoom
         self.onSelectPlace = onSelectPlace
     }
@@ -102,8 +109,9 @@ final class MapBoxCrowdRenderer {
                 )
                 point.textField = place.name
                 point.textSize = 11
-                point.textColor = StyleColor(CongestionPalette.text(area.level).resolvedColor(with: .init(userInterfaceStyle: .light)))
-                point.textHaloColor = StyleColor(.white)
+                let traits = UITraitCollection(userInterfaceStyle: isDarkAppearance ? .dark : .light)
+                point.textColor = StyleColor(CongestionPalette.text(area.level).resolvedColor(with: traits))
+                point.textHaloColor = StyleColor(isDarkAppearance ? .black : .white)
                 point.textHaloWidth = 1.5
                 points.append(point)
             }

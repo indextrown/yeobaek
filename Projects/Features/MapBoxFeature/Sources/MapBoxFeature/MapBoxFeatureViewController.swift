@@ -63,6 +63,9 @@ public final class MapBoxFeatureViewController: UIViewController {
     /// 스타일 로드 전에 도착한 결과도 나중에 표시하기 위해 보관합니다.
     private var crowdState: MapBoxCrowdViewModel.State?
 
+    /// 시트 높이에 맞춰 바꾸는 내 위치 버튼의 아래 제약입니다.
+    private var locationButtonBottomConstraint: NSLayoutConstraint?
+
     /// 앱 실행 중 유지할 지도 상태와 Rx ViewModel을 주입해 UIKit 화면을 만듭니다.
     ///
     /// - Parameters:
@@ -119,6 +122,28 @@ public final class MapBoxFeatureViewController: UIViewController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    /// 화면에 다시 나타날 때 시트 높이 변경을 이 화면이 받도록 다시 연결합니다.
+    ///
+    /// - Parameter animated: 화면 전환 애니메이션 여부입니다.
+    public override func viewWillAppear(
+        _ animated: Bool
+    ) {
+        super.viewWillAppear(animated)
+        bindControlsInset()
+    }
+
+    /// 시트 높이 변경 콜백을 이 화면에 연결하고 현재 여백을 바로 반영합니다.
+    ///
+    /// SwiftUI가 지도 화면을 다시 만들 수 있으므로 보이는 화면이 마지막으로 콜백을 가져갑니다.
+    private func bindControlsInset() {
+        locationButtonBottomConstraint?.constant = -session.controlsBottomInset
+        session.controlsBottomInsetDidChange = { [weak self] inset in
+            guard let self else { return }
+            self.locationButtonBottomConstraint?.constant = -inset
+            UIView.animate(withDuration: 0.3) { self.view.layoutIfNeeded() }
+        }
+    }
+
     /// Mapbox 화면을 구성하고 ViewModel 및 카메라 이벤트를 연결합니다.
     public override func viewDidLoad() {
         super.viewDidLoad()
@@ -126,6 +151,7 @@ public final class MapBoxFeatureViewController: UIViewController {
         configureMapView()
         configureControls()
         configureCrowdOverlay()
+        observeAppearance()
         bindViewModel()
         bindCrowdViewModel()
         observeCamera()
@@ -211,6 +237,34 @@ public final class MapBoxFeatureViewController: UIViewController {
         observeStyleForCrowdRenderer()
     }
 
+    /// 화면 모드에 맞춰 지도 조명과 라벨 색을 바꾸도록 연결합니다.
+    private func observeAppearance() {
+        mapView.mapboxMap.onStyleLoaded
+            .observe { [weak self] _ in
+                Task { @MainActor [weak self] in self?.applyAppearance() }
+            }
+            .store(in: &mapboxCancelables)
+        registerForTraitChanges([UITraitUserInterfaceStyle.self]) { (self: Self, _) in
+            self.applyAppearance()
+        }
+    }
+
+    /// 다크 모드에서는 Mapbox Standard 스타일의 밤 조명을 쓰고 혼잡도 라벨 색도 바꿉니다.
+    private func applyAppearance() {
+        let isDark = traitCollection.userInterfaceStyle == .dark
+        if mapView.mapboxMap.isStyleLoaded {
+            try? mapView.mapboxMap.setStyleImportConfigProperty(
+                for: "basemap",
+                config: "lightPreset",
+                value: isDark ? "night" : "day"
+            )
+        }
+        crowdRenderer?.isDarkAppearance = isDark
+        if let crowdState {
+            renderCrowd(crowdState)
+        }
+    }
+
     /// 지도 스타일이 준비되면 혼잡도 레이어를 만들도록 연결합니다.
     private func observeStyleForCrowdRenderer() {
         mapView.mapboxMap.onStyleLoaded
@@ -241,6 +295,7 @@ public final class MapBoxFeatureViewController: UIViewController {
     private func prepareCrowdRenderer() {
         if crowdRenderer == nil {
             crowdRenderer = MapBoxCrowdRenderer(mapView: mapView, onSelectPlace: session.onSelectPlace)
+            crowdRenderer?.isDarkAppearance = traitCollection.userInterfaceStyle == .dark
         }
         if let crowdState {
             renderCrowd(crowdState)
@@ -340,14 +395,18 @@ public final class MapBoxFeatureViewController: UIViewController {
         view.addSubview(authorizationBackgroundView)
         view.addSubview(locationButton)
 
+        let bottomConstraint = locationButton.bottomAnchor.constraint(
+            equalTo: view.safeAreaLayoutGuide.bottomAnchor,
+            constant: -session.controlsBottomInset
+        )
+        bottomConstraint.isActive = true
+        locationButtonBottomConstraint = bottomConstraint
+        bindControlsInset()
+
         NSLayoutConstraint.activate([
             locationButton.widthAnchor.constraint(equalToConstant: 52),
             locationButton.heightAnchor.constraint(equalToConstant: 52),
             locationButton.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -16),
-            locationButton.bottomAnchor.constraint(
-                equalTo: view.safeAreaLayoutGuide.bottomAnchor,
-                constant: -session.controlsBottomInset
-            ),
             authorizationLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 250),
             authorizationLabel.leadingAnchor.constraint(
                 equalTo: authorizationBackgroundView.contentView.leadingAnchor,
