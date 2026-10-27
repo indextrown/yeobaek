@@ -12,7 +12,10 @@ public final class MapBoxSession {
     let showsCrowdPanel: Bool
 
     /// 화면 아래에서 내 위치 버튼까지의 거리입니다. 지도 위에 시트를 올리면 시트 높이만큼 키웁니다.
-    let controlsBottomInset: CGFloat
+    private(set) var controlsBottomInset: CGFloat
+
+    /// 버튼 여백이 바뀌면 화면이 제약을 갱신하도록 알립니다.
+    var controlsBottomInsetDidChange: ((CGFloat) -> Void)?
 
     /// 사용자가 지도에서 장소 영역을 눌렀을 때 장소 코드를 전달합니다.
     public var onSelectPlace: (@MainActor (Place.ID) -> Void)?
@@ -40,6 +43,16 @@ public final class MapBoxSession {
         self.crowdViewModel = crowdViewModel
         self.showsCrowdPanel = showsCrowdPanel
         self.controlsBottomInset = controlsBottomInset
+    }
+
+    /// 지도 위 시트 높이가 바뀌었을 때 내 위치 버튼 여백을 함께 옮깁니다.
+    ///
+    /// - Parameter inset: 화면 아래 안전 영역에서 내 위치 버튼까지의 새 거리입니다.
+    public func updateControlsBottomInset(
+        _ inset: CGFloat
+    ) {
+        controlsBottomInset = inset
+        controlsBottomInsetDidChange?(inset)
     }
 
     /// 아직 자동 요청을 기록하지 않았다면 앱 수명에서 한 번만 기록합니다.

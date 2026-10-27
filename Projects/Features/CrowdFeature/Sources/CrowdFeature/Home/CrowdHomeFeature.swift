@@ -40,13 +40,15 @@ public struct CrowdHomeFeature {
             CrowdRanking.counts(scopedPlaces, snapshots: snapshots)
         }
 
+        /// 혼잡도를 받은 장소를 붐비는 순서로 정렬한 목록입니다.
+        var rankedPlaces: [Place] {
+            CrowdRanking.sorted(scopedPlaces, snapshots: snapshots, by: .crowding)
+                .filter { snapshots[$0.id] != nil }
+        }
+
         /// 지금 붐비는 순서로 세 곳입니다.
         var topPlaces: [Place] {
-            Array(
-                CrowdRanking.sorted(scopedPlaces, snapshots: snapshots, by: .crowding)
-                    .filter { snapshots[$0.id] != nil }
-                    .prefix(3)
-            )
+            Array(rankedPlaces.prefix(3))
         }
 
         /// 받은 혼잡도 중 가장 최근 원천 데이터 기준 시각입니다.

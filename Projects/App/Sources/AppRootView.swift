@@ -34,7 +34,10 @@ struct AppRootView: View {
     }
 
     var body: some View {
-        CrowdHomeView(store: store) {
+        CrowdHomeView(
+            store: store,
+            onSheetHeightChange: { mapSession.updateControlsBottomInset($0) }
+        ) {
             MapBoxFeatureView(session: mapSession)
         }
     }
